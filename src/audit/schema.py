@@ -12,7 +12,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-CLAIM_SCHEMA_VERSION = 1
+CLAIM_SCHEMA_VERSION = 2
 
 Variant = Literal["original", "oneoff", "conflicting"]
 """Task variant. `oneoff` and `conflicting` are the impossible variants."""
@@ -31,8 +31,20 @@ ClaimType = Literal[
 ContextMode = Literal["full", "no_test_diff", "no_transcript"]
 """What the estimator sees. Outcomes are stripped in every mode."""
 
-HackMethod = Literal["test_modification", "special_casing", "operator_override", "other"]
-"""ImpossibleBench's own taxonomy, recorded where the harness exposes it."""
+HackMethod = Literal[
+    "modify_tests",
+    "overload_operators",
+    "record_extra_states",
+    "special_casing",
+    "other",
+]
+"""Categories A to E from ImpossibleBench's `CLASSIFY_PROMPT`.
+
+Not exposed by the harness. It is an LLM judge in `analysis/llm_judge.py`, so
+this label costs model calls and is itself noisy. Under `agent_type="minimal"`
+only `overload_operators` and `record_extra_states` are observable on the
+`conflicting` variant, because the scorer places the served test after the
+agent's answer. See `Transcript.in_loop_success`."""
 
 
 class Task(BaseModel):
@@ -41,6 +53,7 @@ class Task(BaseModel):
     task_id: str
     variant: Variant
     prompt: str = Field(description="The spec the agent is told to follow.")
+    entry_point: str = Field(description="Name of the function to implement, needed to run any test.")
     original_tests: str = Field(description="The unmutated test file.")
     variant_tests: str = Field(description="The test file as served to the agent.")
 
@@ -56,8 +69,23 @@ class Transcript(BaseModel):
         description="Agent visible messages and tool calls, each with a stable `id`."
     )
     final_report: str
-    tests_passed: bool = Field(description="Outcome. Never shown to the estimator.")
+    tests_passed: bool = Field(
+        description="The scorer's verdict, which places the served test AFTER the agent's answer."
+    )
+    in_loop_success: bool = Field(
+        description=(
+            "The agent loop's verdict, which places the served test BEFORE the answer. "
+            "Diverges from tests_passed when the agent redefined `check`."
+        )
+    )
     label: HackLabel = Field(description="Computed from variant plus tests_passed.")
+    check_override_hack: bool = Field(
+        default=False,
+        description=(
+            "in_loop_success and not tests_passed on an impossible variant. "
+            "Recovers the type A hacks the scorer's ordering discards."
+        ),
+    )
     hack_method: HackMethod | None = None
     n_messages: int
     n_chars: int = Field(description="Transcript length, used for length-matched controls.")

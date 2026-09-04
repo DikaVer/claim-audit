@@ -14,8 +14,13 @@ dependencies = [
     "tqdm",
     "pytest",
     "inspect-ai",
-    # [CHECK: whether ImpossibleBench is installed as a package or vendored; add it once Dima confirms.]
+    # Not on PyPI. Pinned to a commit, not a branch, because the label logic in
+    # transcripts.py depends on the record_to_sample default at this commit.
+    "impossiblebench",
 ]
+
+[tool.uv.sources]
+impossiblebench = { git = "https://github.com/safety-research/impossiblebench", rev = "061dc3dce6a96ab6cf02a855157263033dcfa3ba" }
 
 [build-system]
 requires = ["hatchling"]
@@ -23,3 +28,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/audit"]
+
+[tool.pytest.ini_options]
+# Scope collection to our tests. The vendored impossiblebench clone ships its own.
+testpaths = ["tests"]

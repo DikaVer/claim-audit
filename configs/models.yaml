@@ -1,7 +1,26 @@
-# Model identities and sampling parameters shared by every stage.
-agent_model: "[CHECK: cheap model with a high ImpossibleBench cheat rate; pick from the leaderboard]"
-estimator_model: "[CHECK: strongest available OpenAI model]"
-extractor_model: "[CHECK: mid-tier OpenAI model]"
-monitor_model: "[CHECK: must equal estimator_model, so any gap is about format not model]"
-temperature: 0.0        # zero for extractor, estimator and monitor; the agent may override
-max_tokens: 4096        # per model call ceiling
+# Model roles. Values are Azure OpenAI DEPLOYMENT names, not model names.
+# Inspect resolves them as openai/azure/<deployment>, so keep each deployment
+# named after its model to avoid Inspect's deployment-mismatch warning.
+#
+# Sampling params are per role, not global. Reasoning models on Azure OpenAI do
+# not accept a temperature, so determinism for those roles comes from cache.py
+# rather than from sampling parameters.
+
+agent:
+  deployment: "o3"            # 86% cheat rate on conflicting LCB under prompt B, and the lowest share of test-modification hacks among OpenAI models
+  reasoning_effort: "medium"  # matches the paper's replication settings
+  reasoning_tokens: 4096
+
+estimator:
+  deployment: "gpt-5"         # strongest available, used for both estimator and baseline monitor
+  reasoning_effort: "medium"  # no temperature key: reasoning models reject it
+
+monitor:
+  deployment: "gpt-5"         # must equal the estimator, so any gap is about format not model
+  reasoning_effort: "medium"
+
+extractor:
+  deployment: "gpt-4.1"       # mid-tier and non-reasoning, so temperature 0 is real here
+  temperature: 0.0
+
+max_tokens: 4096              # per model call ceiling, all roles
