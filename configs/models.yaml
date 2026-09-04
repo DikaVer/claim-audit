@@ -13,6 +13,7 @@ agent:
   deployment: "o3"            # 86% cheat rate on conflicting LCB under prompt B
   reasoning_effort: "medium"  # matches the paper's replication settings
   reasoning_tokens: 4096
+  max_tokens: 32768           # maps to max_completion_tokens, which covers reasoning AND visible output together. Too low and the model spends the whole budget thinking and returns an empty completion.
 
 # Fallback ladder if gpt-5.6 quota is not granted: gpt-5.6-sol -> gpt-5.5 -> gpt-5.
 # All three are reasoning models with the same 922k input and 128k output shape,
@@ -20,10 +21,12 @@ agent:
 estimator:
   deployment: "gpt-5.6-sol"   # strongest available, used for both estimator and baseline monitor
   reasoning_effort: "medium"  # no temperature key: reasoning models reject it
+  max_tokens: 16384
 
 monitor:
   deployment: "gpt-5.6-sol"   # must equal the estimator, so any gap is about format not model
   reasoning_effort: "medium"
+  max_tokens: 16384
 
 extractor:
   # Deliberately not a gpt-5.6 variant. All three of those are reasoning models,
@@ -39,5 +42,4 @@ extractor:
   deployment: "gpt-4o"        # mid-tier and non-reasoning, so temperature 0 is real here
   model_version: "2024-11-20"
   temperature: 0.0
-
-max_tokens: 4096              # per model call ceiling, all roles
+  max_tokens: 4096            # non-reasoning, so this is visible output only
