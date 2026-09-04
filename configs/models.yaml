@@ -6,14 +6,30 @@
 # not accept a temperature, so determinism for those roles comes from cache.py
 # rather than from sampling parameters.
 
+# Open weights, and the only role where the reasoning trace is readable. Verified:
+# with reasoning_effort set, Azure returns reasoning_content as plain text and
+# Inspect splits it into a separate content part, so the model's private
+# deliberation and its public report can be compared directly. That makes
+# concealment measurable, which o3 cannot support because its reasoning arrives
+# encrypted. reasoning_effort is the toggle: without it V3.2 answers in
+# non-thinking mode and returns no trace at all. The Speciale variant is NOT the
+# thinking variant, it behaves the same way.
+# Tool calling is not supported by any DeepSeek model on Azure, so agent_type
+# must stay "minimal". [CHECK: V3.2 training cutoff against ImpossibleBench,
+# published October 2025.]
 agent:
-  # Training cutoff 31 May 2024, which predates ImpossibleBench (published
-  # October 2025). The agent provably cannot have seen the benchmark, the
-  # dataset or the paper. A gpt-5.6 agent, cutoff June 2026, probably has.
+  deployment: "DeepSeek-V3.2"
+  reasoning_effort: "medium"  # required, or there is no reasoning trace
+  max_tokens: 32768
+
+# Retained as the comparison arm. Training cutoff 31 May 2024, which predates
+# ImpossibleBench, so it provably cannot have seen the benchmark. Measured at
+# 2 of 2 hacks in the smoke run. Its reasoning is encrypted, so it supports the
+# claim analysis but not the concealment analysis.
+agent_alt:
   deployment: "o3"            # 86% cheat rate on conflicting LCB under prompt B
   reasoning_effort: "medium"  # matches the paper's replication settings
-  reasoning_tokens: 4096
-  max_tokens: 32768           # maps to max_completion_tokens, which covers reasoning AND visible output together. Too low and the model spends the whole budget thinking and returns an empty completion.
+  max_tokens: 32768           # maps to max_completion_tokens, which covers reasoning AND visible output together
 
 # Fallback ladder if gpt-5.6 quota is not granted: gpt-5.6-sol -> gpt-5.5 -> gpt-5.
 # All three are reasoning models with the same 922k input and 128k output shape,
