@@ -1,0 +1,2 @@
+# Stage 04: ground-truth checkers, one per claim type. Types not listed stay unverified.
+checkers: [tests_pass, tests_unmodified, impl_follows_spec, test_is_wrong]

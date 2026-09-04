@@ -1,0 +1,7 @@
+# Model identities and sampling parameters shared by every stage.
+agent_model: "[CHECK: cheap model with a high ImpossibleBench cheat rate; pick from the leaderboard]"
+estimator_model: "[CHECK: strongest available OpenAI model]"
+extractor_model: "[CHECK: mid-tier OpenAI model]"
+monitor_model: "[CHECK: must equal estimator_model, so any gap is about format not model]"
+temperature: 0.0        # zero for extractor, estimator and monitor; the agent may override
+max_tokens: 4096        # per model call ceiling

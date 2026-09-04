@@ -1,0 +1,4 @@
+# Stage 05: metrics and figures. Reads stages 01 to 04, computes nothing new from models.
+metrics: [auroc, brier, ece, signature_features]
+bootstrap_n: 1000                                          # resamples for confidence intervals
+figures: [roc_claim_vs_monitor, reliability, signature_features, per_mutation_auroc]

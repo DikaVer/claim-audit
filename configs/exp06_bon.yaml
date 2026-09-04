@@ -1,0 +1,4 @@
+# Stage 06 (stretch): best-of-N with in-context RL rounds on impossible tasks only.
+n_samples: 8                                        # N per task per round
+rounds: 3                                           # selected transcripts become the next round's few-shot examples
+selection_rule: [outcome_only, outcome_plus_estimator]   # (a) tests passed; (b) tests passed and estimator aggregate above threshold

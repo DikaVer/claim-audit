@@ -1,0 +1,3 @@
+# Stage 02: extract atomic claims from the agent's visible messages and final report.
+extractor_model: "[CHECK: overrides models.yaml extractor_model when set]"
+claim_schema_version: 1   # bump whenever schema.py Claim gains or loses a field

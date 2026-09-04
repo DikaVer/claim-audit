@@ -1,0 +1,12 @@
+# Generated data and results are never committed. Keep the directory markers.
+data/*
+results/*
+!data/raw/
+!data/processed/
+!**/.gitkeep
+
+.env
+__pycache__/
+*.pyc
+.cache/
+.venv/

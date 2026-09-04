@@ -1,0 +1,3 @@
+# Stage 03: estimator scores P(true) per claim. Outcomes are stripped in every mode.
+estimator_model: "[CHECK: overrides models.yaml estimator_model when set]"
+context_mode: [full, no_test_diff, no_transcript]   # full: transcript minus outcomes; no_test_diff: test file changes hidden; no_transcript: claim only, the prior
