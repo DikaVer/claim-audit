@@ -1,0 +1,3 @@
+# Stage 3b: judge what the reasoning knew against what the report said.
+judge_model: null    # null means models.yaml -> estimator.deployment, so the judge is the estimator model.
+max_workers: 20      # reasoning traces run to 400k characters, so fewer in flight than stage 03. [CHECK: throttling on the full run]

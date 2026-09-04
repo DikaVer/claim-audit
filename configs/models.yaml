@@ -37,7 +37,12 @@ agent_alt:
 # so substituting one is a one-line edit here and nothing else changes.
 estimator:
   deployment: "gpt-5.6-sol"   # strongest available, used for both estimator and baseline monitor
-  reasoning_effort: "medium"  # no temperature key: reasoning models reject it
+  # Was medium. Swept none, low, medium, high on 12 stratified claims in the
+  # full and no_transcript modes, session 17. Cost is dominated by the input
+  # tokens, so high costs about one cent more per call than none, and it was
+  # the only setting that never skipped tracing: with no reasoning the model
+  # gave 0.94 to a mechanism claim the other three settings traced as false.
+  reasoning_effort: "high"    # no temperature key: reasoning models reject it
   max_tokens: 16384
 
 monitor:

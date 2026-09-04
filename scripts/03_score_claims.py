@@ -29,6 +29,10 @@ def main() -> None:
         help="Score claims from the first N transcripts only, for the spot-check batch. Recorded in the manifest.",
     )
     parser.add_argument(
+        "--types", nargs="+", default=None,
+        help="Score claims of these types only, for example `--types impl_follows_spec` for the with_reasoning ablation. Recorded in the manifest.",
+    )
+    parser.add_argument(
         "--modes", nargs="+", default=None,
         help="Override the config's context modes for this run, for example `--modes no_transcript`. Recorded in the manifest.",
     )
@@ -46,6 +50,8 @@ def main() -> None:
     if args.modes is not None:
         overrides["context_mode"] = args.modes
         config["context_mode"] = args.modes
+    if args.types is not None:
+        overrides["types"] = args.types
     if overrides:
         config["overrides"] = overrides
     estimator_model = config["estimator_model"] or models["estimator"]["deployment"]
@@ -66,6 +72,7 @@ def main() -> None:
         "prompts/estimator.md",
         max_workers=config["max_workers"],
         only_verifiable=config["only_verifiable"],
+        types=args.types,
     )
 
     with open(run_dir / "scores.jsonl", "w", encoding="utf-8") as fh:
@@ -100,6 +107,7 @@ def summarise(scores) -> dict:
             "n_distinct": len(set(ps)),
             "frac_at_anchors": round(sum(p in (0.0, 0.5, 1.0) for p in ps) / len(ps), 3),
             "n_below_half": sum(p < 0.5 for p in ps),
+            "n_type_mismatch": sum(s.type_mismatch for s in scores if s.context_mode == mode),
         }
     return {"n_scores": len(scores), "by_mode": out, "n_claims": len({s.claim_id for s in scores})}
 

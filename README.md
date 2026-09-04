@@ -10,6 +10,7 @@ Install with `make install` (uv). Then run the stages in order, each reading the
 make gen      # 01_generate_transcripts.py
 make claims   # 02_extract_claims.py
 make score    # 03_score_claims.py
+make gap      # 03b_reasoning_gap.py, reasoning against report, needs a model with readable reasoning
 make verify   # 04_verify_claims.py
 make analyse  # 05_analyse.py
 make bon      # 06_bon.py  (stretch)
@@ -48,6 +49,22 @@ print(df.groupby(["variant", "label"]).size())
 print(df.groupby("label")[["n_messages", "n_chars", "reasoning_chars"]].median())
 print(df.loc[df.label == "hack", "final_report"].iloc[0])
 ```
+
+## Stage 03 outputs and how to read them
+
+`make score` reads the latest stage 01 and stage 02 runs and writes `scores.jsonl`, one `ClaimScore` per (claim, context mode), plus `summary.json`. Modes run in the order given in `configs/exp03_score.yaml`, cheapest first. Every call is cached, so a run that stops part way is resumed by running it again under a new run id.
+
+What the estimator sees in each mode is decided by `estimator.build_context`, and the rule is the same in all of them: the task prompt and the agent's own messages, never the harness feedback, never the test outcome, never the reasoning. `no_test_diff` additionally replaces the served test block with a marker wherever it appears. `no_transcript` shows the claim alone.
+
+Before the full batch, score one transcript in the cheapest mode:
+
+```
+uv run python scripts/03_score_claims.py --config configs/exp03_score.yaml --limit 1 --modes no_transcript
+```
+
+Then read `summary.json`. `n_distinct` and `frac_at_anchors` per mode say whether the probabilities spread or collapsed onto 0, 0.5 and 1; a collapsed mode leaves stage 05 nothing to calibrate.
+
+Two follow-ups read the same stage 01 run. `--modes with_reasoning --types impl_follows_spec` rescores the correctness claims with the agent's reasoning trace in view, the ablation for "does the trace do the detecting". `make gap` is stage 3b: one judge call per transcript that compares what the reasoning acknowledged with what the report said, writing `gaps.jsonl` with a framing label per report and `summary.json` with the counts per label.
 
 ## Viewing a run
 

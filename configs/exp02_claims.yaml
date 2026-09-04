@@ -1,4 +1,4 @@
 # Stage 02: extract atomic claims from the agent's visible messages and final report.
 extractor_model: null     # null means use models.yaml -> extractor.deployment. Set a deployment name here to override for one run.
-claim_schema_version: 4   # must equal CLAIM_SCHEMA_VERSION in schema.py, which versions the whole inter-stage contract
+claim_schema_version: 7  # must equal CLAIM_SCHEMA_VERSION in schema.py, which versions the whole inter-stage contract
 max_workers: 50           # extractor calls in flight. Tried at 50 on the full batch, see LOGBOOK session 13 for the throttling result. [CHECK: gpt-4o tokens-per-minute quota in germanywestcentral]

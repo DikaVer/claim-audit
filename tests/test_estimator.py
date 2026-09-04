@@ -82,6 +82,13 @@ def test_no_test_diff_hides_the_served_tests_only():
         estimator.build_context(_transcript(), "no_test_diff", _task().model_copy(update={"variant_tests": "nope"}))
 
 
+def test_reasoning_only_is_the_trace_and_nothing_else():
+    text = estimator.build_context(_transcript(), "reasoning_only", _task())
+    assert "special-case the input" in text
+    assert "return 3" not in text and "Implement f." not in text and "All tests pass now." not in text
+    assert "assert candidate" not in text and "AssertionError" not in text
+
+
 def test_no_transcript_is_claim_only():
     assert estimator.build_context(_transcript(), "no_transcript") == ""
     text = estimator.render_for_estimator(_claim(), _transcript(), "no_transcript")
@@ -96,11 +103,13 @@ def test_score_claim_parses_and_clamps(monkeypatch, tmp_path):
 
     def fake_call(model, messages, **params):
         seen.update(model=model, messages=messages, params=params)
-        return {"choices": [{"message": {"content": json.dumps({"p_true": 1.0000001, "justification": " Cited. "})}}], "usage": {}}
+        return {"choices": [{"message": {"content": json.dumps({"p_true": 1.0000001, "justification": " Cited. ", "type_mismatch": True})}}], "usage": {}}
 
     monkeypatch.setattr(cache, "call_model", fake_call)
     s = estimator.score_claim(_claim(), _transcript(), "full", "gpt-5.6-sol", str(prompt), _task())
     assert s.p_true == 1.0 and s.justification == "Cited." and s.context_mode == "full"
+    assert s.type_mismatch is True
+    assert "type_mismatch" in seen["params"]["response_format"]["json_schema"]["schema"]["required"]
     assert seen["messages"][0] == {"role": "system", "content": "estimate"}
     assert "Claim (type tests_pass, cites m3)" in seen["messages"][1]["content"]
     assert "reasoning_effort" in seen["params"] and "temperature" not in seen["params"]

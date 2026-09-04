@@ -25,10 +25,11 @@ _RESPONSE_FORMAT = {
         "schema": {
             "type": "object",
             "additionalProperties": False,
-            "required": ["p_true", "justification"],
+            "required": ["p_true", "justification", "type_mismatch"],
             "properties": {
                 "p_true": {"type": "number"},
                 "justification": {"type": "string"},
+                "type_mismatch": {"type": "boolean"},
             },
         },
     },
@@ -69,6 +70,13 @@ def build_context(transcript: Transcript, context_mode: ContextMode, task: Task 
     """
     if context_mode == "no_transcript":
         return ""
+    if context_mode == "reasoning_only":
+        # The trace and nothing else: no task, no code, no report. The score
+        # is then P(true | what the agent privately worked out), to be set
+        # against the `full` score for the same claim.
+        return "\n\n".join(
+            f"[{r['message_id']}] assistant reasoning:\n{r['text']}" for r in transcript.reasoning
+        )
     if context_mode == "no_test_diff" and task is None:
         raise ValueError("no_test_diff needs the Task to locate the served tests")
 
@@ -118,7 +126,10 @@ def score_claim(
 
     Inputs: the Claim, its Transcript, the context mode, the estimator model
     name, the path to `prompts/estimator.md`, and the Task for `no_test_diff`.
-    Outputs: a ClaimScore with `p_true` in [0, 1] and a one-sentence justification.
+    Outputs: a ClaimScore with `p_true` in [0, 1], a one-sentence justification,
+    and `type_mismatch`, set when the sentence does not assert its type's
+    proposition. The estimator marks this itself because it is the one reader
+    that has both the sentence and the type definitions in front of it.
     Invariant: the estimator is consequence-invariant. It sees only what
     `build_context` returns, so test results and the final pass/fail are
     stripped from every context mode.
@@ -140,6 +151,7 @@ def score_claim(
         # said 1, and one failed call should not stop a batch of thousands.
         p_true=min(1.0, max(0.0, float(raw["p_true"]))),
         justification=raw["justification"].strip(),
+        type_mismatch=bool(raw["type_mismatch"]),
     )
 
 
@@ -172,12 +184,16 @@ def score_all(
     prompt_path: str,
     max_workers: int = 8,
     only_verifiable: bool = False,
+    types: list[str] | None = None,
 ) -> list[ClaimScore]:
     """Stage 03 entrypoint. Score every claim in every requested context mode.
 
     Inputs: the stage 01 transcripts file, the stage 02 claims file, the context
     modes to run, the estimator model name, the path to `prompts/estimator.md`,
-    the number of calls in flight, and whether to skip unverifiable claims.
+    the number of calls in flight, whether to skip unverifiable claims, and an
+    optional list of claim types to restrict to, used by the `with_reasoning`
+    ablation so that reasoning traces of 100k characters are paid for only on
+    the claims where the question is open.
     `tasks.jsonl` is read from the same directory as the transcripts file.
     Outputs: one ClaimScore per (claim, context mode) pair, mode-major so a
     cheap mode finishes and is inspectable before an expensive one starts.
@@ -186,7 +202,10 @@ def score_all(
     """
     transcripts = {t.transcript_id: t for t in _load(transcripts_path, Transcript)}
     tasks = {(t.task_id, t.variant): t for t in _load(transcripts_path.parent / "tasks.jsonl", Task)}
-    claims = [c for c in _load(claims_path, Claim) if c.verifiable or not only_verifiable]
+    claims = [
+        c for c in _load(claims_path, Claim)
+        if (c.verifiable or not only_verifiable) and (types is None or c.type in types)
+    ]
 
     def one(item: tuple[Claim, ContextMode]) -> ClaimScore:
         claim, mode = item

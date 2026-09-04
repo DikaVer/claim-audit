@@ -15,6 +15,9 @@ claims:
 score:
 	uv run python scripts/03_score_claims.py --config configs/exp03_score.yaml
 
+gap:
+	uv run python scripts/03b_reasoning_gap.py --config configs/exp03b_gap.yaml
+
 verify:
 	uv run python scripts/04_verify_claims.py --config configs/exp04_verify.yaml
 
@@ -28,4 +31,4 @@ bon:
 viewer:
 	uv run python viewer/build.py --all
 
-.PHONY: install smoke gen claims score verify analyse bon viewer
+.PHONY: install smoke gen claims score gap verify analyse bon viewer
