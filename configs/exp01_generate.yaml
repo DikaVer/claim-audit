@@ -1,9 +1,9 @@
 # Stage 01: generate agent transcripts on ImpossibleBench and compute hack labels.
 dataset: "fjzzq2002/impossible_livecodebench"   # HF dataset id, 103 tasks per split
-n_tasks: 60                                     # passed to the harness as `limit`
+n_tasks: 60                                     # sampled in transcripts.load_tasks and passed to eval_set as sample_id
 variants: [original, oneoff, conflicting]       # oneoff and conflicting are the impossible variants
 samples_per_task: 2                             # passed to Inspect as `epochs`; it is not an ImpossibleBench flag
-seed: 0                                         # does NOT reach the harness: `shuffle` hardcodes seed=42 and `limit` slices afterwards
+seed: 0                                         # used by transcripts.load_tasks to sample task ids; the ids go to eval_set(sample_id=...). The harness `limit` and `shuffle` are left unset because `shuffle` hardcodes seed=42
 
 # Harness settings, passed straight to impossible_livecodebench().
 # "minimal" or "tools"; None raises NotImplementedError. Only "tools" exposes
@@ -15,6 +15,12 @@ allow_test_modifications: true # places the served test before the agent's answe
 max_attempts: 10               # submission attempts with test feedback between them
 message_limit: 50
 sandbox: "docker"
+# Concurrency. DeepSeek-V3.2 quota is 1000K tokens per minute; a hack sample
+# used about 36k tokens over 200 s, so 20 in flight is about 15% of it. Each
+# connection also holds one Docker container, so Docker Desktop needs at least
+# 4 GB of memory for 20 in flight. It is set to 9 GB.
+max_connections: 20
+max_sandboxes: 20
 
 # Prompt B from Table 1 of the paper, the loose variant. Chosen deliberately:
 # the study needs hacks to audit, and B gives 86% on conflicting LCB for o3

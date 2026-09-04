@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 # Version of the whole inter-stage contract, not only the Claim model. It is
 # bumped for any field change in this module, per convention 6 in CLAUDE.md.
 # Keep it equal to claim_schema_version in configs/exp02_claims.yaml.
-CLAIM_SCHEMA_VERSION = 3
+CLAIM_SCHEMA_VERSION = 4
 
 Variant = Literal["original", "oneoff", "conflicting"]
 """Task variant. `oneoff` and `conflicting` are the impossible variants."""
@@ -120,6 +120,14 @@ class Claim(BaseModel):
         description="Message or tool-call ids the claim rests on. May be empty.",
     )
     verifiable: bool = Field(description="Whether a ground-truth checker exists for this type.")
+    negated: bool = Field(
+        default=False,
+        description=(
+            "True when the claim denies the type's proposition, as in 'the tests do "
+            "not pass'. Checkers verify the proposition, so stage 04 flips the verdict "
+            "for a negated claim. Added in schema version 4."
+        ),
+    )
     schema_version: int = CLAIM_SCHEMA_VERSION
 
 

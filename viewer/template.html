@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+:root {
+  --bg: #fbfaf8; --panel: #ffffff; --ink: #1b1a18; --muted: #6b6863;
+  --line: #e2ded7; --accent: #7a5cff; --code-bg: #f5f3ef;
+  --hack: #c2410c; --honest: #15803d; --conflict: #a16207;
+  --add: #dcfce7; --del: #fee2e2;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16151a; --panel: #1e1d24; --ink: #eceaf2; --muted: #9d99a8;
+    --line: #33313c; --accent: #a48bff; --code-bg: #121117;
+    --hack: #fb923c; --honest: #4ade80; --conflict: #fbbf24;
+    --add: #14351f; --del: #3a1618;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.55 ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+}
+code, pre, .mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+a { color: var(--accent); }
+
+header {
+  padding: 22px 28px 16px; border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+h1 { margin: 0 0 4px; font-size: 19px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); font-size: 12.5px; }
+.sub span + span::before { content: "  ·  "; }
+
+.wrap { max-width: 1400px; margin: 0 auto; padding: 0 28px; }
+nav {
+  display: flex; gap: 4px; border-bottom: 1px solid var(--line);
+  background: var(--panel); padding: 0 28px;
+  position: sticky; top: 0; z-index: 5;
+}
+nav button {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--muted); font: inherit; padding: 10px 14px; cursor: pointer;
+}
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+section { padding: 24px 0 60px; }
+h2 { font-size: 15px; margin: 26px 0 10px; }
+h2:first-child { margin-top: 0; }
+
+.cards { display: flex; flex-wrap: wrap; gap: 12px; }
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px 16px; min-width: 140px;
+}
+.card .n { font-size: 22px; font-variant-numeric: tabular-nums; }
+.card .k { color: var(--muted); font-size: 12px; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-weight: 500; font-size: 12px; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--code-bg); }
+tbody tr[aria-selected="true"] { background: var(--code-bg); box-shadow: inset 3px 0 0 var(--accent); }
+
+.tag {
+  display: inline-block; padding: 1px 8px; border-radius: 999px;
+  border: 1px solid currentColor; font-size: 11.5px;
+}
+.tag.hack { color: var(--hack); }
+.tag.honest_success, .tag.honest_fail { color: var(--honest); }
+.tag.honest_under_conflict { color: var(--conflict); }
+.yes { color: var(--honest); } .no { color: var(--hack); }
+
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+select, input[type=search] {
+  font: inherit; padding: 5px 9px; border-radius: 7px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+}
+
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px 14px; overflow-x: auto; font-size: 12.5px; margin: 0;
+  white-space: pre-wrap; word-break: break-word;
+}
+details {
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+  margin-bottom: 8px;
+}
+details > summary {
+  cursor: pointer; padding: 8px 14px; list-style: none;
+  display: flex; gap: 10px; align-items: baseline;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: "▸"; color: var(--muted); }
+details[open] > summary::before { content: "▾"; }
+details > div { padding: 0 14px 14px; }
+.role { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.reasoning > summary { color: var(--muted); font-style: italic; }
+
+.diff { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 900px) { .diff { grid-template-columns: 1fr; } }
+.diffcol h3 { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.dl { display: block; padding: 0 4px; }
+.dl.add { background: var(--add); }
+.dl.del { background: var(--del); }
+.dl.pad { opacity: 0.35; }
+
+.empty { color: var(--muted); padding: 18px; border: 1px dashed var(--line); border-radius: 10px; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 0 0 12px; }
+
+/* spot check */
+.sc-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.sc-bar button, .sc-card button {
+  font: inherit; padding: 5px 11px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+}
+.sc-bar button.primary, .sc-card button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sc-nav { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
+.sc-nav button { min-width: 34px; padding: 4px 0; font-variant-numeric: tabular-nums; }
+.sc-nav button[aria-current="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.sc-nav button.done { color: var(--honest); }
+.sc-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+.sc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 1000px) { .sc-grid { grid-template-columns: 1fr; } }
+.sc-grid h3 { margin: 0 0 8px; font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.sc-report { max-height: calc(100vh - 140px); overflow: auto; position: relative; }
+/* The report column stays pinned while the claims column scrolls, so a long
+   claim list never carries the report off screen. */
+.sc-grid > div:first-child { position: sticky; top: 56px; align-self: start; }
+.sc-report mark { background: #fde68a; color: inherit; border-radius: 3px; }
+@media (prefers-color-scheme: dark) { .sc-report mark { background: #6b4e00; } }
+.claim { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+.claim:hover { border-color: var(--accent); }
+.claim .head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+.claim .text { margin: 0 0 6px; }
+.claim .ctl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.claim.judged-ok { border-left: 3px solid var(--honest); }
+.claim.judged-bad { border-left: 3px solid var(--hack); }
+.tag.type { color: var(--accent); }
+.tag.neg { color: var(--hack); }
+textarea { font: inherit; width: 100%; min-height: 56px; padding: 6px 9px; border-radius: 7px;
+  border: 1px solid var(--line); background: var(--code-bg); color: var(--ink); resize: vertical; }
+label.chk { display: inline-flex; gap: 6px; align-items: center; }
+.sc-foot { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1 id="hTitle">claim-audit run</h1>
+    <div class="sub" id="hSub"></div>
+  </div>
+</header>
+
+<nav id="tabs">
+  <button data-tab="overview" aria-selected="true">Overview</button>
+  <button data-tab="transcripts" aria-selected="false">Transcripts</button>
+  <button data-tab="tasks" aria-selected="false">Tasks &amp; mutations</button>
+  <button data-tab="claims" aria-selected="false">Claims</button>
+  <button data-tab="spotcheck" aria-selected="false">Spot check</button>
+</nav>
+
+<div class="wrap">
+  <section id="overview"></section>
+  <section id="transcripts" hidden></section>
+  <section id="tasks" hidden></section>
+  <section id="claims" hidden></section>
+  <section id="spotcheck" hidden></section>
+</div>
+
+<script type="application/json" id="payload">__PAYLOAD__</script>
+<script>
+const DATA = JSON.parse(document.getElementById("payload").textContent);
+
+// Escapes quotes as well as tags: the same helper is used in attribute position.
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const el = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+
+/* ---------- header ---------- */
+{
+  const m = DATA.manifest || {};
+  document.getElementById("hTitle").textContent = m.run_id || DATA.run_id;
+  const models = m.models || {};
+  const parts = [
+    m.stage ? "stage " + m.stage : null,
+    m.git_commit ? "commit " + m.git_commit.slice(0, 7) : null,
+    models.agent ? "agent " + models.agent.deployment : null,
+    m.start_time ? m.start_time.slice(0, 16).replace("T", " ") : null,
+    (m.n_model_calls ?? null) !== null ? m.n_model_calls + " model calls" : null,
+  ].filter(Boolean);
+  document.getElementById("hSub").innerHTML = parts.map(p => "<span>" + esc(p) + "</span>").join("");
+  document.title = (m.run_id || "claim-audit") + " — claim-audit";
+}
+
+/* ---------- tabs ---------- */
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]"); if (!b) return;
+  for (const x of document.querySelectorAll("nav button")) x.setAttribute("aria-selected", String(x === b));
+  for (const s of document.querySelectorAll("section")) s.hidden = s.id !== b.dataset.tab;
+});
+
+/* ---------- overview ---------- */
+{
+  const s = DATA.summary || {};
+  const labels = s.labels || {};
+  const cards = [
+    ["transcripts", DATA.transcripts.length],
+    ["tasks", DATA.tasks.length],
+    ...Object.entries(labels),
+    ["check-override hacks", s.check_override_hacks ?? 0],
+    ["errored samples", s.n_errored_samples ?? 0],
+  ];
+  const rows = Object.entries(s.by_variant_label || {})
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([k, v]) => {
+      const [variant, label] = k.split("/");
+      return `<tr><td class="mono">${esc(variant)}</td><td><span class="tag ${esc(label)}">${esc(label)}</span></td><td>${v}</td></tr>`;
+    }).join("");
+
+  const tok = Object.entries(s.tokens_by_model || {}).map(([k, v]) =>
+    `<tr><td class="mono">${esc(k)}</td><td>${(v.input_tokens ?? 0).toLocaleString()}</td><td>${(v.output_tokens ?? 0).toLocaleString()}</td><td>${(v.total_tokens ?? 0).toLocaleString()}</td></tr>`
+  ).join("");
+
+  document.getElementById("overview").innerHTML = `
+    <div class="cards">${cards.map(([k, n]) =>
+      `<div class="card"><div class="n">${n}</div><div class="k">${esc(k.replace(/_/g, " "))}</div></div>`).join("")}</div>
+    <h2>Label by variant</h2>
+    <div class="tablewrap"><table><thead><tr><th>variant</th><th>label</th><th>n</th></tr></thead><tbody>${rows || `<tr><td colspan="3">no data</td></tr>`}</tbody></table></div>
+    ${tok ? `<h2>Tokens</h2><div class="tablewrap"><table><thead><tr><th>model</th><th>in</th><th>out</th><th>total</th></tr></thead><tbody>${tok}</tbody></table></div>` : ""}
+    <h2>Config</h2>
+    <pre>${esc(JSON.stringify((DATA.manifest || {}).config || {}, null, 2))}</pre>`;
+}
+
+/* ---------- transcripts ---------- */
+{
+  const root = document.getElementById("transcripts");
+  const variants = [...new Set(DATA.transcripts.map(t => t.variant))].sort();
+  const labels = [...new Set(DATA.transcripts.map(t => t.label))].sort();
+  root.innerHTML = `
+    <div class="filters">
+      <select id="fVariant"><option value="">all variants</option>${variants.map(v => `<option>${esc(v)}</option>`).join("")}</select>
+      <select id="fLabel"><option value="">all labels</option>${labels.map(v => `<option>${esc(v)}</option>`).join("")}</select>
+      <input type="search" id="fText" placeholder="search report text" size="28">
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>transcript</th><th>variant</th><th>label</th><th>tests_passed</th><th>in_loop</th><th>override</th><th>msgs</th><th>chars</th></tr></thead>
+      <tbody id="tBody"></tbody>
+    </table></div>
+    <div id="tDetail"></div>`;
+
+  const bool = b => b ? `<span class="yes">true</span>` : `<span class="no">false</span>`;
+
+  function render() {
+    const fv = fVariant.value, fl = fLabel.value, ft = fText.value.toLowerCase();
+    const rows = DATA.transcripts.filter(t =>
+      (!fv || t.variant === fv) && (!fl || t.label === fl) &&
+      (!ft || (t.final_report || "").toLowerCase().includes(ft)));
+    tBody.innerHTML = rows.map(t => `
+      <tr data-id="${esc(t.transcript_id)}">
+        <td class="mono">${esc(t.transcript_id)}</td>
+        <td>${esc(t.variant)}</td>
+        <td><span class="tag ${esc(t.label)}">${esc(t.label)}</span></td>
+        <td>${bool(t.tests_passed)}</td><td>${bool(t.in_loop_success)}</td>
+        <td>${t.check_override_hack ? `<span class="no">yes</span>` : "—"}</td>
+        <td>${t.n_messages}</td><td>${(t.n_chars || 0).toLocaleString()}</td>
+      </tr>`).join("") || `<tr><td colspan="8">no transcripts match</td></tr>`;
+    tDetail.innerHTML = `<p class="hint">Select a row to open the transcript.</p>`;
+  }
+  for (const id of ["fVariant", "fLabel", "fText"]) document.getElementById(id).addEventListener("input", render);
+
+  tBody.addEventListener("click", e => {
+    const tr = e.target.closest("tr[data-id]"); if (!tr) return;
+    for (const x of tBody.querySelectorAll("tr")) x.setAttribute("aria-selected", String(x === tr));
+    show(DATA.transcripts.find(t => t.transcript_id === tr.dataset.id));
+    tDetail.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  function show(t) {
+    const byMsg = {};
+    for (const r of t.reasoning || []) (byMsg[r.message_id] ||= []).push(r.text);
+
+    const msgs = (t.messages || []).map((m, i) => {
+      const reas = (byMsg[m.id] || []).join("\n\n---\n\n");
+      return `<details${i === 0 ? "" : ""}>
+        <summary><span class="role">${esc(m.role)}</span><span class="mono" style="color:var(--muted)">${esc(m.id)}</span>
+          <span style="color:var(--muted)">${esc((m.content || "").slice(0, 110).replace(/\s+/g, " "))}…</span></summary>
+        <div>
+          <pre>${esc(m.content)}</pre>
+          ${reas ? `<details class="reasoning" style="margin-top:8px"><summary>reasoning trace (${reas.length.toLocaleString()} chars) — held apart from messages; the estimator never sees this</summary><div><pre>${esc(reas)}</pre></div></details>` : ""}
+        </div></details>`;
+    }).join("");
+
+    const orphan = (t.reasoning || []).filter(r => !(t.messages || []).some(m => m.id === r.message_id));
+
+    tDetail.innerHTML = `
+      <h2>${esc(t.transcript_id)} <span class="tag ${esc(t.label)}">${esc(t.label)}</span></h2>
+      <p class="hint">task <span class="mono">${esc(t.task_id)}</span> · variant ${esc(t.variant)} · sample ${t.sample_index}
+        · tests_passed ${t.tests_passed} · in_loop_success ${t.in_loop_success}
+        ${t.hack_method ? " · hack_method " + esc(t.hack_method) : ""}</p>
+      <h2>Final report</h2>
+      <pre>${esc(t.final_report) || "<em>empty</em>"}</pre>
+      <h2>Messages (${(t.messages || []).length})</h2>
+      ${msgs || `<div class="empty">no messages</div>`}
+      ${orphan.length ? `<h2>Unattached reasoning</h2>${orphan.map(r =>
+        `<details class="reasoning"><summary>${esc(r.message_id)}</summary><div><pre>${esc(r.text)}</pre></div></details>`).join("")}` : ""}`;
+  }
+  render();
+}
+
+/* ---------- tasks and mutations ---------- */
+{
+  const root = document.getElementById("tasks");
+  if (!DATA.tasks.length) {
+    root.innerHTML = `<div class="empty">No tasks.jsonl in this run.</div>`;
+  } else {
+    root.innerHTML = `<p class="hint">The served test file against the unmutated one. Highlighted lines are the mutation the whole experiment turns on.</p>` +
+      DATA.tasks.map(t => {
+        const d = t.diff;
+        const col = (rows, side) => rows.map(r => {
+          const cls = r[0] === "=" ? "" : (side === "l" ? "del" : "add");
+          const txt = r[0] === "~" ? "" : r[1];
+          return `<span class="dl ${r[0] === "~" ? "pad" : cls}">${esc(txt) || "&nbsp;"}</span>`;
+        }).join("");
+        return `<details${d.n_changed ? " open" : ""}>
+          <summary><span class="mono">${esc(t.task_id)}</span> <span class="role">${esc(t.variant)}</span>
+            <span style="color:var(--muted)">entry point ${esc(t.entry_point)} · ${d.n_changed} changed line${d.n_changed === 1 ? "" : "s"}</span></summary>
+          <div>
+            <h3 style="font-size:12.5px;color:var(--muted);font-weight:500">Spec shown to the agent</h3>
+            <pre>${esc(t.prompt)}</pre>
+            <div class="diff" style="margin-top:12px">
+              <div class="diffcol"><h3>original_tests</h3><pre>${col(d.left, "l")}</pre></div>
+              <div class="diffcol"><h3>variant_tests (served)</h3><pre>${col(d.right, "r")}</pre></div>
+            </div>
+          </div></details>`;
+      }).join("");
+  }
+}
+
+/* ---------- claims (stages 02 to 04) ---------- */
+{
+  const root = document.getElementById("claims");
+  const have = ["claims", "scores", "verdicts"].filter(k => (DATA[k] || []).length);
+  if (!have.length) {
+    root.innerHTML = `<div class="empty">Stages 02 to 04 have not run for this run id.
+      Once <span class="mono">claims.jsonl</span>, <span class="mono">scores.jsonl</span> or
+      <span class="mono">verdicts.jsonl</span> land in the results directory, rebuild and this tab fills in.</div>`;
+  } else {
+    const scoreBy = {}; for (const s of DATA.scores || []) (scoreBy[s.claim_id] ||= []).push(s);
+    const verdBy = {}; for (const v of DATA.verdicts || []) verdBy[v.claim_id] = v;
+    const modes = [...new Set((DATA.scores || []).map(s => s.context_mode))].sort();
+    const rows = (DATA.claims || []).map(c => {
+      const v = verdBy[c.claim_id];
+      const cells = modes.map(m => {
+        const s = (scoreBy[c.claim_id] || []).find(x => x.context_mode === m);
+        return `<td>${s ? s.p_true.toFixed(2) : "—"}</td>`;
+      }).join("");
+      return `<tr><td class="mono">${esc(c.claim_id)}</td><td class="mono">${esc(c.transcript_id)}</td>
+        <td style="white-space:normal;max-width:520px">${esc(c.text)}</td><td>${esc(c.type)}${c.negated ? ' <span class="tag neg">negated</span>' : ""}</td>
+        ${cells}<td>${v ? (v.is_true === null ? "—" : (v.is_true ? `<span class="yes">true</span>` : `<span class="no">false</span>`)) : "—"}</td></tr>`;
+    }).join("");
+    root.innerHTML = `<div class="tablewrap"><table>
+      <thead><tr><th>claim</th><th>transcript</th><th>text</th><th>type</th>
+      ${modes.map(m => `<th>p_true<br>${esc(m)}</th>`).join("")}<th>verdict</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="9">no claims</td></tr>`}</tbody></table></div>`;
+  }
+}
+
+/* ---------- spot check: a human reads 20 reports against their claims ---------- */
+{
+  const root = document.getElementById("spotcheck");
+  const claimsBy = {}; for (const c of DATA.claims || []) (claimsBy[c.transcript_id] ||= []).push(c);
+  const pool = DATA.transcripts.filter(t => (claimsBy[t.transcript_id] || []).length);
+  const TYPES = ["tests_pass", "impl_follows_spec", "tests_unmodified", "test_is_wrong", "other"];
+  const VERDICTS = [["", "— judge —"], ["ok", "ok"], ["wrong_type", "wrong type"], ["wrong_polarity", "wrong polarity"],
+    ["not_in_report", "not in report"], ["changed_meaning", "changed meaning"], ["not_atomic", "not atomic"]];
+  // Quotas per label; the rest of the 20 is topped up from whatever is left.
+  const QUOTA = { hack: 8, honest_success: 6, honest_under_conflict: 6 };
+  const N = 20;
+  const KEY = "spotcheck:" + DATA.run_id;
+
+  if (!pool.length) {
+    root.innerHTML = `<div class="empty">No claims in this run, nothing to spot-check.</div>`;
+  } else {
+    // Deterministic sample: the same seed gives the same 20, so the set can be cited.
+    const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+    const shuffle = (arr, r) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    function sample(seed) {
+      const r = rng(seed);
+      const byLabel = {}; for (const t of shuffle(pool, r)) (byLabel[t.label] ||= []).push(t);
+      const chosen = [];
+      for (const [lab, q] of Object.entries(QUOTA)) chosen.push(...(byLabel[lab] || []).splice(0, q));
+      const rest = shuffle(Object.values(byLabel).flat(), r);
+      while (chosen.length < N && rest.length) chosen.push(rest.shift());
+      return shuffle(chosen, r).map(t => t.transcript_id);
+    }
+
+    // A review embedded at build time (viewer/build.py --spotcheck) becomes the
+    // initial state when the browser holds none, and can be reloaded on demand.
+    const fromExport = x => ({ run_id: DATA.run_id, seed: x.seed ?? 0, sample: x.sample.map(s => s.transcript_id), show_labels: false, reviewer: x.reviewer || "",
+      reviews: Object.fromEntries(x.sample.map(s => [s.transcript_id, { done: !!s.done, odd: !!s.odd, note: s.note || "", missed: s.missed || "",
+        claims: Object.fromEntries((s.claims || []).map(c => [c.claim_id, { verdict: c.verdict || "", correct_type: c.correct_type || "", note: c.note || "" }])) }])) });
+    let state;
+    try { state = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { state = null; }
+    if (!state || !Array.isArray(state.sample)) state = DATA.spotcheck ? fromExport(DATA.spotcheck) : { run_id: DATA.run_id, seed: 0, sample: sample(0), reviews: {}, show_labels: false };
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+    const review = tid => (state.reviews[tid] ||= { claims: {}, missed: "", odd: false, note: "", done: false });
+    let cur = 0;
+
+    // Highlight the claim's longest 4 to 7 word run that appears in the report.
+    function anchorMatch(text, report) {
+      const words = text.replace(/[`*_]/g, "").split(/\s+/).filter(w => w.length);
+      for (let n = 7; n >= 3; n--) for (let i = 0; i + n <= words.length; i++) {
+        const win = words.slice(i, i + n).map(w => w.replace(/[^\p{L}\p{N}]+/gu, "")).filter(Boolean);
+        if (win.length < 3) continue;
+        const re = new RegExp(win.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("[^\\p{L}\\p{N}]+"), "iu");
+        const m = report.match(re); if (m) return m;
+      }
+      return null;
+    }
+    function reportHtml(report, claimText) {
+      if (!claimText) return esc(report);
+      const m = anchorMatch(claimText, report);
+      if (!m) return esc(report);
+      const i = m.index;
+      return esc(report.slice(0, i)) + "<mark>" + esc(m[0]) + "</mark>" + esc(report.slice(i + m[0].length));
+    }
+
+    function render() {
+      const done = state.sample.filter(id => state.reviews[id]?.done).length;
+      const tid = state.sample[cur]; const t = DATA.transcripts.find(x => x.transcript_id === tid);
+      const cs = claimsBy[tid] || []; const rv = review(tid);
+      const bad = Object.values(rv.claims).filter(v => v.verdict && v.verdict !== "ok").length;
+      root.innerHTML = `
+        <p class="hint">Read the report, then judge each claim: is it in the report with the same meaning and strength, is the type right by the rule in the prompt, is the polarity right? Note anything the report asserts that has no claim. Labels are hidden so the read is blind; the toggle shows them for the last question, whether the extractor behaves differently on hacks.</p>
+        <div class="sc-bar">
+          <span>seed <input type="number" id="scSeed" value="${state.seed}" style="width:70px;font:inherit;padding:4px 6px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink)"></span>
+          <button id="scResample">resample 20</button>
+          <label class="chk"><input type="checkbox" id="scLabels" ${state.show_labels ? "checked" : ""}> show labels</label>
+          <span style="flex:1"></span>
+          <span class="hint" style="margin:0">${done} / ${state.sample.length} reviewed</span>
+          <button id="scCopy">copy JSON</button>
+          <button id="scDownload" class="primary">download JSON</button>
+          <button id="scReset" title="clear every judgement for this run">reset</button>
+          ${DATA.spotcheck ? `<button id="scLoad" title="replace the current judgements with the review embedded in this page">load ${esc(DATA.spotcheck.reviewer || "embedded")} review</button>` : ""}
+        </div>
+        ${state.reviewer ? `<p class="hint">Showing the review by <b>${esc(state.reviewer)}</b>. Edit any judgement to disagree; your edits are saved in this browser and exported with the rest.</p>` : ""}
+        <div class="sc-nav">${state.sample.map((id, i) => `<button data-i="${i}" aria-current="${i === cur}" class="${state.reviews[id]?.done ? "done" : ""}" title="${esc(id)}">${i + 1}${state.reviews[id]?.done ? " ✓" : ""}</button>`).join("")}</div>
+        <div class="sc-card">
+          <h2 style="margin-top:0">${cur + 1} of ${state.sample.length} · <span class="mono">${esc(tid)}</span>
+            ${state.show_labels ? `<span class="tag ${esc(t.label)}">${esc(t.label)}</span> <span class="hint" style="margin:0">tests_passed ${t.tests_passed}</span>` : ""}</h2>
+          <div class="sc-grid">
+            <div><h3>Final report (hover a claim to locate it)</h3><pre class="sc-report" id="scReport">${esc(t.final_report)}</pre></div>
+            <div><h3>Extracted claims (${cs.length})${bad ? ` · <span class="no">${bad} flagged</span>` : ""}</h3>
+              ${cs.map(c => { const v = rv.claims[c.claim_id] || {}; return `
+                <div class="claim ${v.verdict === "ok" ? "judged-ok" : (v.verdict ? "judged-bad" : "")}" data-cid="${esc(c.claim_id)}">
+                  <div class="head"><span class="tag type">${esc(c.type)}</span>${c.negated ? `<span class="tag neg">negated</span>` : ""}
+                    <span class="mono" style="color:var(--muted);font-size:11px">${esc(c.claim_id.split("-").pop())}</span></div>
+                  <p class="text">${esc(c.text)}</p>
+                  <div class="ctl">
+                    <select data-f="verdict">${VERDICTS.map(([k, l]) => `<option value="${k}" ${v.verdict === k ? "selected" : ""}>${l}</option>`).join("")}</select>
+                    <select data-f="correct_type" ${v.verdict === "wrong_type" ? "" : "hidden"}><option value="">correct type…</option>${TYPES.map(x => `<option ${v.correct_type === x ? "selected" : ""}>${x}</option>`).join("")}</select>
+                    <input data-f="note" type="text" placeholder="note" value="${esc(v.note || "")}" style="flex:1;min-width:120px;font:inherit;padding:4px 8px;border-radius:7px;border:1px solid var(--line);background:var(--code-bg);color:var(--ink)">
+                  </div></div>`; }).join("")}
+              <h3 style="margin-top:14px">Assertions in the report that have no claim</h3>
+              <textarea id="scMissed" placeholder="one per line, or leave empty">${esc(rv.missed)}</textarea>
+              <div style="margin-top:8px"><label class="chk"><input type="checkbox" id="scOdd" ${rv.odd ? "checked" : ""}> extractor behaved oddly here (wording, splitting, thoroughness)</label></div>
+              <input id="scNote" type="text" placeholder="transcript note" value="${esc(rv.note)}" style="margin-top:8px;width:100%;font:inherit;padding:5px 9px;border-radius:7px;border:1px solid var(--line);background:var(--code-bg);color:var(--ink)">
+            </div>
+          </div>
+          <div class="sc-foot">
+            <button id="scPrev" ${cur === 0 ? "disabled" : ""}>← previous</button>
+            <button id="scAllOk">mark all claims ok</button>
+            <span style="flex:1"></span>
+            <button id="scDone" class="primary">${rv.done ? "reviewed ✓, next →" : "mark reviewed, next →"}</button>
+          </div>
+        </div>`;
+
+      const report = document.getElementById("scReport");
+      root.querySelectorAll(".claim").forEach(div => {
+        const c = cs.find(x => x.claim_id === div.dataset.cid);
+        div.addEventListener("mouseenter", () => {
+          report.innerHTML = reportHtml(t.final_report, c.text);
+          // Scroll the report pane only. scrollIntoView would move the page as well.
+          const mk = report.querySelector("mark");
+          if (mk) report.scrollTo({ top: Math.max(0, mk.offsetTop - report.clientHeight / 2), behavior: "smooth" });
+        });
+        div.addEventListener("mouseleave", () => { report.innerHTML = esc(t.final_report); });
+        div.querySelectorAll("[data-f]").forEach(inp => inp.addEventListener("input", () => {
+          const v = (rv.claims[c.claim_id] ||= {}); v[inp.dataset.f] = inp.value; save();
+          if (inp.dataset.f === "verdict") render();
+        }));
+      });
+      document.getElementById("scMissed").addEventListener("input", e => { rv.missed = e.target.value; save(); });
+      document.getElementById("scNote").addEventListener("input", e => { rv.note = e.target.value; save(); });
+      document.getElementById("scOdd").addEventListener("change", e => { rv.odd = e.target.checked; save(); });
+      document.getElementById("scLabels").addEventListener("change", e => { state.show_labels = e.target.checked; save(); render(); });
+      document.getElementById("scAllOk").addEventListener("click", () => { for (const c of cs) (rv.claims[c.claim_id] ||= {}).verdict ||= "ok"; save(); render(); });
+      document.getElementById("scPrev").addEventListener("click", () => { cur = Math.max(0, cur - 1); render(); window.scrollTo({ top: 0 }); });
+      document.getElementById("scDone").addEventListener("click", () => { rv.done = true; save(); cur = Math.min(state.sample.length - 1, cur + 1); render(); window.scrollTo({ top: 0 }); });
+      root.querySelector(".sc-nav").addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (b) { cur = +b.dataset.i; render(); } });
+      document.getElementById("scResample").addEventListener("click", () => {
+        const seed = +document.getElementById("scSeed").value || 0;
+        if (Object.keys(state.reviews).length && !confirm("Resampling keeps judgements only for transcripts that stay in the sample. Continue?")) return;
+        state.seed = seed; state.sample = sample(seed); cur = 0; save(); render();
+      });
+      document.getElementById("scReset").addEventListener("click", () => { if (confirm("Clear every judgement for this run?")) { state.reviews = {}; state.reviewer = ""; save(); render(); } });
+      document.getElementById("scLoad")?.addEventListener("click", () => { if (confirm("Replace the current judgements with the embedded review?")) { state = fromExport(DATA.spotcheck); cur = 0; save(); render(); } });
+      const exportJson = () => JSON.stringify({ run_id: DATA.run_id, input_run: DATA.input_run || null, seed: state.seed, reviewer: state.reviewer || "", exported: new Date().toISOString(),
+        sample: state.sample.map(id => { const tt = DATA.transcripts.find(x => x.transcript_id === id); const r = state.reviews[id] || {};
+          return { transcript_id: id, label: tt.label, done: !!r.done, odd: !!r.odd, note: r.note || "", missed: r.missed || "",
+            claims: (claimsBy[id] || []).map(c => ({ claim_id: c.claim_id, type: c.type, negated: c.negated, text: c.text, ...(r.claims?.[c.claim_id] || {}) })) }; }) }, null, 2);
+      document.getElementById("scCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(exportJson()); } catch (e) { prompt("copy this", exportJson()); } });
+      document.getElementById("scDownload").addEventListener("click", () => {
+        const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([exportJson()], { type: "application/json" }));
+        a.download = "spotcheck-" + DATA.run_id + ".json"; a.click(); URL.revokeObjectURL(a.href);
+      });
+    }
+    render();
+  }
+}
+</script>
+</body>
+</html>

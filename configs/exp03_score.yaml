@@ -6,4 +6,12 @@ estimator_model: null     # null means use models.yaml -> estimator.deployment. 
 # default. It is the ablation for "does reading the agent's reasoning help?",
 # and leaving it out of this list is what keeps the reasoning from doing the
 # detecting instead of the claim format.
-context_mode: [full, no_test_diff, no_transcript]
+# Order matters: modes run one after another, cheapest first, so a collapsed
+# prior is visible before the expensive modes are paid for.
+context_mode: [no_transcript, no_test_diff, full]
+# false scores every claim, so `other` claims carry a P(true) for the stage 05
+# signature features. true scores the verifiable ones only, which is the cut
+# line in PLAN.md if the budget or the clock runs out: 1,050 versus 2,526
+# claims per mode on the current stage 02 run.
+only_verifiable: false
+max_workers: 50           # estimator calls in flight. 50 was fine for gpt-4o at 30k capacity; gpt-5.6-sol is at 10k. [CHECK: throttling on the first full mode]

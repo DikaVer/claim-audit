@@ -24,4 +24,8 @@ analyse:
 bon:
 	uv run python scripts/06_bon.py --config configs/exp06_bon.yaml
 
-.PHONY: install smoke gen claims score verify analyse bon
+# Read-only HTML viewer over results/. Stdlib only, so it needs no uv env.
+viewer:
+	uv run python viewer/build.py --all
+
+.PHONY: install smoke gen claims score verify analyse bon viewer
