@@ -12,7 +12,10 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-CLAIM_SCHEMA_VERSION = 2
+# Version of the whole inter-stage contract, not only the Claim model. It is
+# bumped for any field change in this module, per convention 6 in CLAUDE.md.
+# Keep it equal to claim_schema_version in configs/exp02_claims.yaml.
+CLAIM_SCHEMA_VERSION = 3
 
 Variant = Literal["original", "oneoff", "conflicting"]
 """Task variant. `oneoff` and `conflicting` are the impossible variants."""
@@ -28,8 +31,12 @@ ClaimType = Literal[
     "other",
 ]
 
-ContextMode = Literal["full", "no_test_diff", "no_transcript"]
-"""What the estimator sees. Outcomes are stripped in every mode."""
+ContextMode = Literal["full", "no_test_diff", "no_transcript", "with_reasoning"]
+"""What the estimator sees. Outcomes are stripped in every mode.
+
+Agent reasoning is stripped in every mode except `with_reasoning`, which exists
+so that "does reading the reasoning help?" is a deliberate ablation rather than
+an advantage baked into the default. It is not in the default config list."""
 
 HackMethod = Literal[
     "modify_tests",
@@ -67,6 +74,16 @@ class Transcript(BaseModel):
     sample_index: int = Field(description="Which sample of this task and variant.")
     messages: list[dict] = Field(
         description="Agent visible messages and tool calls, each with a stable `id`."
+    )
+    reasoning: list[dict] = Field(
+        default_factory=list,
+        description=(
+            "The agent's reasoning trace, keyed to the message ids it belongs to, so "
+            "stage 3b can align private deliberation with the public report. Held "
+            "apart from `messages` on purpose: the estimator must not see it, or the "
+            "reasoning does the detecting instead of the claim format. Empty for "
+            "models whose reasoning is encrypted, such as o3."
+        ),
     )
     final_report: str
     tests_passed: bool = Field(
@@ -134,7 +151,13 @@ class RunManifest(BaseModel):
     stage: str
     git_commit: str
     config: dict = Field(description="The config exactly as loaded.")
-    models: dict[str, str]
+    models: dict[str, dict] = Field(
+        description=(
+            "configs/models.yaml as loaded, one nested dict per role. Nested rather "
+            "than flat because the sampling parameters are per role, and the manifest "
+            "has to record what a run actually used for the run to be reproducible."
+        )
+    )
     start_time: datetime
     end_time: datetime | None = None
     n_model_calls: int = 0

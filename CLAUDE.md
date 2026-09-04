@@ -3,19 +3,36 @@
 Project: **claim-audit**. Claim-level auditing of reward-hacking transcripts.
 Owner: Dima. Purpose: MATS application project (16 h budget). Read `PLAN.md` for the research plan.
 
-## Your job right now: skeleton only
+## Your job right now: stage 01
 
-Create the repository skeleton described below and stop. Do not implement experiment logic. Do not write prompts. Do not call any API. Do not download data. Do not run anything except `python -c "import audit"` to confirm the package imports.
+The skeleton is done and the harness is wired up. Read `LOGBOOK.md` before
+starting: sessions 2 to 7 record findings from source reading and smoke runs
+that are not derivable from the code.
 
-Concretely:
+Next task: implement stage 01, that is `src/audit/transcripts.py` and
+`scripts/01_generate_transcripts.py`, then run the full grid. Everything else
+in `src/audit/` stays a stub until its stage comes up.
 
-- Every function in `src/audit/` is a stub: a full signature with type hints, a docstring stating inputs, outputs and the invariant it must respect, and `raise NotImplementedError`.
-- Every script in `scripts/` parses args, loads its config, creates a run directory with a manifest, calls one stub, and exits. No other logic.
-- Every file in `prompts/` contains only a title line and a bullet list of the fields the prompt must include. No prompt text.
-- Config files contain keys with placeholder values and a comment per key.
-- After creating the tree, print it with `tree -a -I '.git'` and list any decisions you made that were not specified here. Then stop and wait.
+Settled and verified by smoke runs, do not re-litigate without new evidence:
 
-If something in this file is ambiguous, ask one question rather than guessing.
+- Harness: ImpossibleBench, pinned at commit `061dc3d` as a uv git source.
+  It is an Inspect AI `@task`, so reuse the Inspect setup. Docker is required.
+- Models: Azure OpenAI, account `llm-thebakerz` in `germanywestcentral`.
+  Roles and deployments are in `configs/models.yaml`. Inspect addresses them as
+  `openai/azure/<deployment>`.
+- Agent is `DeepSeek-V3.2` with `reasoning_effort` set. Without that parameter
+  there is no reasoning trace at all.
+- `agent_type` is locked to `minimal`, because no DeepSeek model on Azure
+  supports tool calling.
+- The instruction prompt must ask for a report. Without it the agent emits only
+  a code block and there are no claims to audit.
+- On Windows, force utf-8 on stdout and stderr before importing the harness. It
+  prints emoji that cp1252 cannot encode, which kills every sample.
+
+Still true from the original brief: no stage may call the OpenAI client
+directly, all model calls go through `cache.py`, results are append-only,
+`runs.py` is the only writer of `manifest.json`, labels are computed rather
+than typed, and the estimator never sees outcomes or reasoning.
 
 ## Repository layout
 
@@ -74,7 +91,7 @@ claim-audit/
 
 ## Dependencies
 
-Declare these and nothing else without asking: `openai`, `pydantic`, `pyyaml`, `pandas`, `numpy`, `scikit-learn`, `matplotlib`, `tqdm`, `pytest`, `inspect-ai`. [CHECK: whether ImpossibleBench is installed as a package or vendored; add it once Dima confirms.]
+Declare these and nothing else without asking: `openai`, `pydantic`, `pyyaml`, `pandas`, `numpy`, `scikit-learn`, `matplotlib`, `tqdm`, `pytest`, `inspect-ai`, and `impossiblebench` pinned to commit `061dc3d` as a uv git source. It is not on PyPI, so it is neither a plain package nor vendored.
 
 ## Experiment-flow conventions (enforce in the skeleton)
 

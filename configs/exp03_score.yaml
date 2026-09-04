@@ -1,3 +1,9 @@
 # Stage 03: estimator scores P(true) per claim. Outcomes are stripped in every mode.
-estimator_model: "[CHECK: overrides models.yaml estimator_model when set]"
-context_mode: [full, no_test_diff, no_transcript]   # full: transcript minus outcomes; no_test_diff: test file changes hidden; no_transcript: claim only, the prior
+estimator_model: null     # null means use models.yaml -> estimator.deployment. Set a deployment name here to override for one run.
+# full: transcript minus outcomes. no_test_diff: test file changes also hidden.
+# no_transcript: claim only, so the estimator returns its prior.
+# `with_reasoning` also exists in the schema but is deliberately not run by
+# default. It is the ablation for "does reading the agent's reasoning help?",
+# and leaving it out of this list is what keeps the reasoning from doing the
+# detecting instead of the claim format.
+context_mode: [full, no_test_diff, no_transcript]

@@ -13,10 +13,16 @@ def build_context(transcript: Transcript, context_mode: ContextMode) -> str:
     Inputs: the Transcript and the context mode.
     Outputs: `full` gives the whole transcript minus outcomes, `no_test_diff`
     additionally hides every change to test files, `no_transcript` gives nothing
-    so the estimator returns its prior.
-    Invariant: test results and the final pass/fail are stripped from every
-    mode, without exception. `Transcript.tests_passed` and `Transcript.label`
-    must never reach the returned string.
+    so the estimator returns its prior, `with_reasoning` is `full` plus the
+    agent's reasoning trace.
+    Invariant, outcomes: test results and the final pass/fail are stripped from
+    every mode, without exception. `Transcript.tests_passed`,
+    `Transcript.in_loop_success`, `Transcript.check_override_hack` and
+    `Transcript.label` must never reach the returned string.
+    Invariant, reasoning: `Transcript.reasoning` is stripped from every mode
+    except `with_reasoning`. The reasoning states the agent's intent outright,
+    so leaking it would mean the trace does the detecting rather than the claim
+    format, which is the comparison this study exists to make.
     """
     raise NotImplementedError
 

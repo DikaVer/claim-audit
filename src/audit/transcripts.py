@@ -7,13 +7,17 @@ from pathlib import Path
 from audit.schema import HackLabel, Task, Transcript, Variant
 
 
-def load_tasks(dataset: str, split: str, n_tasks: int, variants: list[Variant], seed: int) -> list[Task]:
+def load_tasks(dataset: str, n_tasks: int, variants: list[Variant], seed: int) -> list[Task]:
     """Load ImpossibleBench tasks.
 
-    Inputs: the HF dataset id, the split, how many tasks to sample, which
-    variants to include, and the sampling seed.
+    Inputs: the HF dataset id, how many tasks to sample, which variants to
+    include, and the sampling seed. There is no separate `split` argument: on
+    this dataset the split name and the variant name are the same thing.
     Outputs: one Task per (sampled task, variant) pair.
-    Invariant: the same seed returns the same task ids in the same order.
+    Invariant: the same seed returns the same task ids in the same order. Note
+    the harness cannot honour this on its own, because its `shuffle` hardcodes
+    seed 42 and its `limit` slices afterwards. Sample here, then pass the
+    chosen ids down.
     """
     raise NotImplementedError
 

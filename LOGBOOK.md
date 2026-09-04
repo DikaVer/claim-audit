@@ -91,3 +91,21 @@ Decided: DeepSeek-V3.2 becomes the agent, o3 is retained in `models.yaml` as `ag
 Open: [CHECK: DeepSeek-V3.2 training cutoff against October 2025.] If it postdates the benchmark, the contamination caveat that ruled out gpt-5.6 as agent applies here too and must be stated.
 Next: implement stage 01 for real, then the full grid.
 Time spent so far: 5.5 h
+
+## 2026-09-04 (session 8)
+Tried: cleaned the repository before implementing stage 01, and resolved every open marker.
+Found one real bug that would have stopped stage 01 on its first run: `RunManifest.models` was typed `dict[str, str]`, but `models.yaml` became nested per-role dicts in session 4. Every script loads that file and passes it straight to `write_manifest`, so the first manifest write would have raised a pydantic `string_type` error. Verified by feeding the real file to the model, then fixed to `dict[str, dict]`. Nested is the right shape, not a workaround: sampling parameters are per role, and a manifest that does not record them does not make a run reproducible.
+Found a design question behind the missing reasoning field. If the trace goes into `Transcript.messages` then `build_context("full")` hands the estimator a passage saying "is this acceptable? Probably not... I'll implement this hack", and the reasoning does the detecting rather than the claim format. That is the same confound as o3's self-reporting, just larger. So `reasoning` is a separate field keyed to message ids, `build_context` strips it in every mode, and the invariant sits in the docstring next to the outcome-stripping one. Added a fourth context mode, `with_reasoning`, so that "does reading the reasoning help?" stays available as a deliberate ablation. It is deliberately not in the default `context_mode` list in `exp03_score.yaml`.
+Resolved: DeepSeek-V3.2's training cutoff predates ImpossibleBench, confirmed by Dima. Contamination is ruled out by construction, as it is for o3, so the caveat that disqualified gpt-5.6 does not apply. Recorded in `configs/models.yaml` and `PLAN.md`, and this closes the open item from session 7.
+Also cleaned:
+  - `CLAIM_SCHEMA_VERSION` 2 to 3, matched in `exp02_claims.yaml`, which had drifted at 1 since session 4. Added a comment saying the constant versions the whole inter-stage contract, not only the `Claim` model, since the name misleads and that is what caused the drift.
+  - `CLAUDE.md`'s "skeleton only" section replaced. It told every future session not to implement logic, call an API, or run anything, which contradicted the last six sessions and loads into context every time. It now states the current phase and the settled facts.
+  - `exp02` and `exp03` model keys pointed at `models.yaml extractor_model` and `estimator_model`, which stopped existing in session 4. Set to null with a comment naming the new path. The resolver belongs to whoever implements those stages.
+  - `split` removed from `exp01_generate.yaml` and from `transcripts.load_tasks`. On this dataset the split name and the variant name are the same thing, and the script was reading a key that no longer existed, which would have been a KeyError.
+  - `epochs` renamed to `samples_per_task`, the name `CLAUDE.md` uses, with a comment that Inspect receives it as `epochs`.
+  - Resolved the harness marker in `PLAN.md` and the packaging marker in `CLAUDE.md`. No `[CHECK: ...]` markers remain outside the logbook.
+  - Removed an empty `logs/` directory left by the first smoke attempt.
+Verified: a static pass now confirms every script-to-stub call resolves with matching arity AND that every `config["key"]` a script reads exists in that stage's YAML. That check found the `split` bug and is worth keeping.
+Kept on purpose: the smoke logs under `data/raw/`, about 930 KB and gitignored, are the evidence behind sessions 6 and 7. The unused `DeepSeek-V3.2-Speciale` deployment costs nothing idle, so it stays until Dima says otherwise.
+Next: implement stage 01.
+Time spent so far: 6 h

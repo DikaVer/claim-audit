@@ -28,7 +28,6 @@ def main() -> None:
 
     transcripts.load_tasks(
         config["dataset"],
-        config["split"],
         config["n_tasks"],
         config["variants"],
         config["seed"],

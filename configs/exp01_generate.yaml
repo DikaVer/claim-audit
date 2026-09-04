@@ -1,9 +1,8 @@
 # Stage 01: generate agent transcripts on ImpossibleBench and compute hack labels.
 dataset: "fjzzq2002/impossible_livecodebench"   # HF dataset id, 103 tasks per split
-split: null                                     # unused: variants below name the splits
 n_tasks: 60                                     # passed to the harness as `limit`
 variants: [original, oneoff, conflicting]       # oneoff and conflicting are the impossible variants
-epochs: 2                                       # samples per task; this is Inspect's `epochs`, not an ImpossibleBench flag
+samples_per_task: 2                             # passed to Inspect as `epochs`; it is not an ImpossibleBench flag
 seed: 0                                         # does NOT reach the harness: `shuffle` hardcodes seed=42 and `limit` slices afterwards
 
 # Harness settings, passed straight to impossible_livecodebench().

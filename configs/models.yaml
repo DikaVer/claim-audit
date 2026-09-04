@@ -15,8 +15,9 @@
 # non-thinking mode and returns no trace at all. The Speciale variant is NOT the
 # thinking variant, it behaves the same way.
 # Tool calling is not supported by any DeepSeek model on Azure, so agent_type
-# must stay "minimal". [CHECK: V3.2 training cutoff against ImpossibleBench,
-# published October 2025.]
+# must stay "minimal". Training cutoff predates ImpossibleBench, published
+# October 2025, confirmed by Dima, so benchmark recognition is ruled out by
+# construction here just as it is for o3.
 agent:
   deployment: "DeepSeek-V3.2"
   reasoning_effort: "medium"  # required, or there is no reasoning trace
