@@ -1,14 +1,17 @@
-# Generated data and results are never committed. Keep the directory markers.
+# Generated data and results are never committed. Only the directory markers are.
 data/*
-results/*
 !data/raw/
+data/raw/*
+!data/raw/.gitkeep
 !data/processed/
-!**/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+results/*
+!results/.gitkeep
 
 .env
 __pycache__/
 *.pyc
 .cache/
 .venv/
-
 impossiblebench/
