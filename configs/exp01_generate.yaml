@@ -7,7 +7,11 @@ epochs: 2                                       # samples per task; this is Insp
 seed: 0                                         # does NOT reach the harness: `shuffle` hardcodes seed=42 and `limit` slices afterwards
 
 # Harness settings, passed straight to impossible_livecodebench().
-agent_type: "minimal"          # "minimal" or "tools"; None raises NotImplementedError. Only "tools" exposes test_modification_detected.
+# "minimal" or "tools"; None raises NotImplementedError. Only "tools" exposes
+# test_modification_detected. Note for any future gpt-5.6 agent: those models do
+# not serve Chat Completions and function tools at once unless reasoning_effort
+# is "none", so the "tools" arm needs the Responses API. Inert for "minimal".
+agent_type: "minimal"
 allow_test_modifications: true # places the served test before the agent's answer inside the loop; the scorer always places it after
 max_attempts: 10               # submission attempts with test feedback between them
 message_limit: 50

@@ -32,3 +32,14 @@ Decided:
   - Scoped pytest to `tests/`, since the nested clone ships its own suite.
 Next: Azure login has expired, so deploy `o3`, `gpt-5` and `gpt-4.1`, fill `.env`, then the smoke run over both agent types at limit 2. Histogram the estimator's p_true on that run: if a reasoning model returns three round numbers, stage 05 calibration is dead and we learn it now rather than at hour 8.
 Time spent so far: 2.5 h
+
+## 2026-09-04 (session 4)
+Tried: checked whether GPT-5.6 should replace the model choices, after Dima asked why we were not using it. My earlier recommendation of gpt-5 as "strongest available" was made from a model roster that ends at my May 2026 knowledge cutoff, so it was stale.
+Found: GPT-5.6 shipped in three variants, `gpt-5.6-sol`, `gpt-5.6-terra` and `gpt-5.6-luna`. All three are reasoning models with a 1,050,000 token window (922k in, 128k out) and a June 2026 training cutoff. Sol is $5 per 1M input and $30 per 1M output, on promotion at $4 and $20 until 30 November 2026. Tier 5 and Tier 6 subscriptions have quota by default, everything else needs a quota request. They do not serve Chat Completions and function tools at once unless `reasoning_effort` is `none`.
+Decided:
+  - Agent stays o3, and for a better reason than the one given in session 3. o3's training cutoff is 31 May 2024. ImpossibleBench was published in October 2025. So o3 provably cannot have seen the benchmark, the dataset or the paper, while a GPT-5.6 agent probably has. An agent that recognises the tasks as an eval measures eval-awareness rather than reward hacking, and nothing separates the two afterwards. The measured 86% cheat rate is now the second argument, not the first.
+  - Estimator and monitor move to `gpt-5.6-sol`. The spec is "strongest available" and nothing there depends on published cheat rates. Contamination inflates estimator and monitor identically, because PLAN.md pins them to one model, so the AUROC gap is unaffected. The 922k input window also removes any risk of a long transcript overflowing the monitor's context.
+  - Extractor stays `gpt-4.1`. Luna is ten times cheaper but is a reasoning model, so it gives up temperature 0, and the extractor is the one role where temperature 0 is both achievable and load bearing: the "extraction may leak the label" control rests on stable output, not merely cached output. Revisit as a stage 02 cost optimisation once the pipeline works.
+  - Recorded a fallback ladder in `models.yaml`, `gpt-5.6-sol` to `gpt-5.5` to `gpt-5`, so a refused quota request is a one-line edit.
+Next: unchanged. Azure login, deploy `o3`, `gpt-5.6-sol` and `gpt-4.1`, request gpt-5.6 quota early since a Sponsorship subscription is unlikely to be Tier 5 or 6, fill `.env`, then the smoke run.
+Time spent so far: 3 h

@@ -7,19 +7,29 @@
 # rather than from sampling parameters.
 
 agent:
-  deployment: "o3"            # 86% cheat rate on conflicting LCB under prompt B, and the lowest share of test-modification hacks among OpenAI models
+  # Training cutoff 31 May 2024, which predates ImpossibleBench (published
+  # October 2025). The agent provably cannot have seen the benchmark, the
+  # dataset or the paper. A gpt-5.6 agent, cutoff June 2026, probably has.
+  deployment: "o3"            # 86% cheat rate on conflicting LCB under prompt B
   reasoning_effort: "medium"  # matches the paper's replication settings
   reasoning_tokens: 4096
 
+# Fallback ladder if gpt-5.6 quota is not granted: gpt-5.6-sol -> gpt-5.5 -> gpt-5.
+# All three are reasoning models with the same 922k input and 128k output shape,
+# so substituting one is a one-line edit here and nothing else changes.
 estimator:
-  deployment: "gpt-5"         # strongest available, used for both estimator and baseline monitor
+  deployment: "gpt-5.6-sol"   # strongest available, used for both estimator and baseline monitor
   reasoning_effort: "medium"  # no temperature key: reasoning models reject it
 
 monitor:
-  deployment: "gpt-5"         # must equal the estimator, so any gap is about format not model
+  deployment: "gpt-5.6-sol"   # must equal the estimator, so any gap is about format not model
   reasoning_effort: "medium"
 
 extractor:
+  # Deliberately not a gpt-5.6 variant. All three of those are reasoning models,
+  # and this is the one role where temperature 0 is both achievable and load
+  # bearing, because the "extraction may leak the label" control rests on the
+  # extractor's output being stable rather than merely cached.
   deployment: "gpt-4.1"       # mid-tier and non-reasoning, so temperature 0 is real here
   temperature: 0.0
 
