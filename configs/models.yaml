@@ -30,7 +30,14 @@ extractor:
   # and this is the one role where temperature 0 is both achievable and load
   # bearing, because the "extraction may leak the label" control rests on the
   # extractor's output being stable rather than merely cached.
-  deployment: "gpt-4.1"       # mid-tier and non-reasoning, so temperature 0 is real here
+  # Was gpt-4.1. Forced to change: germanywestcentral has no GlobalStandard or
+  # DataZoneStandard quota for gpt-4.1, only Batch, which Inspect does not drive.
+  # gpt-4o keeps every property that mattered and strengthens one: its October
+  # 2023 cutoff predates ImpossibleBench by two years. Version 2024-11-20 is
+  # pinned because structured outputs landed in 2024-08-06, and claim extraction
+  # returns JSON matching the Claim model.
+  deployment: "gpt-4o"        # mid-tier and non-reasoning, so temperature 0 is real here
+  model_version: "2024-11-20"
   temperature: 0.0
 
 max_tokens: 4096              # per model call ceiling, all roles

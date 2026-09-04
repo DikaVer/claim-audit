@@ -43,3 +43,13 @@ Decided:
   - Recorded a fallback ladder in `models.yaml`, `gpt-5.6-sol` to `gpt-5.5` to `gpt-5`, so a refused quota request is a one-line edit.
 Next: unchanged. Azure login, deploy `o3`, `gpt-5.6-sol` and `gpt-4.1`, request gpt-5.6 quota early since a Sponsorship subscription is unlikely to be Tier 5 or 6, fill `.env`, then the smoke run.
 Time spent so far: 3 h
+
+## 2026-09-04 (session 5)
+Tried: deployed the three model roles on Azure OpenAI and wired the credentials into `.env`.
+Found: the subscription already had an AIServices account, `llm-thebakerz` in `germanywestcentral`, resource group `thebakerz`, with `gpt-5-mini`, `gpt-5.4-nano` and `gpt-5.6-luna` deployed. Quota was already present for everything we needed, so no quota request was necessary: `OpenAI.GlobalStandard.o3` 10000, `OpenAI.GlobalStandard.gpt-5.6-sol` 10000, both unused. The `gpt-5.6-luna` and `gpt-5.6-sol` pools are separate, so the existing Luna deployment does not compete.
+Found the one blocker: `germanywestcentral` has no GlobalStandard or DataZoneStandard quota for `gpt-4.1`, only Batch SKUs, which Inspect does not drive.
+Decided: extractor moves from `gpt-4.1` to `gpt-4o` version 2024-11-20. Every property that mattered survives and one improves. It is non-reasoning, so temperature 0 is real, which was the whole reason for not using Luna. Its October 2023 cutoff predates ImpossibleBench by two years, so the contamination argument gets stronger. Version 2024-11-20 is pinned rather than 2024-05-13, because structured outputs landed in 2024-08-06 and claim extraction returns JSON matching the `Claim` model. All three model versions are now pinned for the same reason the ImpossibleBench commit is pinned.
+Deployed, all GlobalStandard, all Succeeded: `o3` 2025-04-16 at 10000, `gpt-5.6-sol` 2026-07-09 at 10000, `gpt-4o` 2024-11-20 at 30000. Capacity is a rate ceiling and GlobalStandard bills per token, so taking the full limit costs nothing.
+Verified: all three answer a live generate through `get_model("openai/azure/<deployment>")`, which is the exact path stage 01 uses. That exercised the endpoint form, the api-version default and the deployment-name mapping in one go. The endpoint is the `openai.azure.com` moniker, not the `services.ai.azure.com` one that this account also advertises, because the Azure OpenAI client rejects the latter.
+Next: the smoke run over both agent types at limit 2, and the estimator p_true histogram.
+Time spent so far: 3.5 h
