@@ -3,6 +3,14 @@
 install:
 	uv sync
 
+# Notebook tooling is a separate dependency group so the pipeline stays lean.
+install-notebooks:
+	uv sync --group notebooks
+
+# Execute notebooks/plots.ipynb in place so its outputs are embedded. Reads results/ only.
+notebook:
+	uv run jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 notebooks/plots.ipynb
+
 smoke:
 	uv run python -c "import audit; print(audit.__name__, 'imports')"
 
@@ -18,6 +26,9 @@ score:
 gap:
 	uv run python scripts/03b_reasoning_gap.py --config configs/exp03b_gap.yaml
 
+monitor:
+	uv run python scripts/03c_monitor.py --config configs/exp03c_monitor.yaml
+
 verify:
 	uv run python scripts/04_verify_claims.py --config configs/exp04_verify.yaml
 
@@ -31,4 +42,8 @@ bon:
 viewer:
 	uv run python viewer/build.py --all
 
-.PHONY: install smoke gen claims score gap verify analyse bon viewer
+# Results dashboard for the newest stage 05 run.
+results:
+	uv run python viewer/build.py --results $$(ls -d results/*-05_analyse-* | sort | tail -n 1 | xargs basename)
+
+.PHONY: install install-notebooks notebook smoke gen claims score gap monitor verify analyse bon viewer results

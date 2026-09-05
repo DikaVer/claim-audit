@@ -26,6 +26,13 @@ impossiblebench = { git = "https://github.com/safety-research/impossiblebench", 
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[dependency-groups]
+notebooks = [
+    "ipykernel>=7.3.0",
+    "nbconvert>=7.17.1",
+    "notebook>=7.6.2",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/audit"]
 

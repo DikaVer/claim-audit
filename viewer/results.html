@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+:root {
+  --bg: #fbfaf8; --panel: #ffffff; --ink: #1b1a18; --muted: #6b6863;
+  --line: #e2ded7; --accent: #7a5cff; --code-bg: #f5f3ef;
+  --hack: #eb6834; --honest: #2a78d6; --conflict: #eda100; --fail: #6b6863;
+  --low: #fee2e2; --high: #dcfce7; --mid: #fef9c3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16151a; --panel: #1e1d24; --ink: #eceaf2; --muted: #9d99a8;
+    --line: #33313c; --accent: #a48bff; --code-bg: #121117;
+    --hack: #d95926; --honest: #3987e5; --conflict: #c98500; --fail: #9d99a8;
+    --low: #3a1618; --high: #14351f; --mid: #3a3410;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.55 ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; }
+code, pre, .mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+header { padding: 22px 28px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+h1 { margin: 0 0 4px; font-size: 19px; }
+.sub { color: var(--muted); font-size: 12.5px; }
+.sub span + span::before { content: "  ·  "; }
+.wrap { max-width: 1500px; margin: 0 auto; padding: 0 28px; }
+nav { display: flex; gap: 4px; border-bottom: 1px solid var(--line); background: var(--panel); padding: 0 28px; position: sticky; top: 0; z-index: 5; }
+nav button { background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted); font: inherit; padding: 10px 14px; cursor: pointer; }
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+section { padding: 24px 0 60px; }
+h2 { font-size: 15px; margin: 26px 0 10px; }
+h2:first-child { margin-top: 0; }
+h3 { font-size: 13px; margin: 18px 0 6px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+p.note { color: var(--muted); font-size: 12.5px; max-width: 900px; margin: 4px 0 10px; }
+.cards { display: flex; flex-wrap: wrap; gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; min-width: 140px; }
+.card .n { font-size: 22px; font-variant-numeric: tabular-nums; }
+.card .k { color: var(--muted); font-size: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+th, td { padding: 6px 9px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; position: sticky; top: 41px; background: var(--panel); }
+th[data-dir="asc"]::after { content: " ▲"; } th[data-dir="desc"]::after { content: " ▼"; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr[data-id] { cursor: pointer; } tr[data-id]:hover { background: var(--code-bg); } tr[aria-selected="true"] { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tag { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11.5px; border: 1px solid var(--line); white-space: nowrap; }
+.tag.hack { color: var(--hack); border-color: var(--hack); }
+.tag.honest_success { color: var(--honest); border-color: var(--honest); }
+.tag.honest_under_conflict { color: var(--conflict); border-color: var(--conflict); }
+.tag.honest_fail { color: var(--fail); }
+.p { display: inline-block; min-width: 42px; text-align: right; padding: 0 5px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.p.lo { background: var(--low); } .p.hi { background: var(--high); } .p.mid { background: var(--mid); }
+.true { color: var(--honest); } .false { color: var(--hack); } .none { color: var(--muted); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 8px 0 12px; font-size: 12.5px; }
+.filters label { display: inline-flex; gap: 5px; align-items: center; }
+select, input[type=text] { font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); }
+.detail { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; margin-top: 16px; }
+pre { background: var(--code-bg); padding: 10px 12px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-size: 12px; margin: 6px 0; }
+details > summary { cursor: pointer; color: var(--muted); }
+blockquote { margin: 4px 0 8px; padding: 6px 12px; border-left: 3px solid var(--line); color: var(--ink); font-size: 12.5px; }
+.figs { display: grid; grid-template-columns: 1fr; gap: 18px; max-width: 1000px; }
+.figs figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.figs img { width: 100%; height: auto; display: block; }
+.figs figcaption { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.small { color: var(--muted); font-size: 11.5px; }
+details.legend { margin: 6px 0 12px; font-size: 12.5px; }
+details.legend > summary { font-weight: 600; }
+details.legend dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 8px 0 0; max-width: 1000px; }
+details.legend dt { font-weight: 600; white-space: nowrap; }
+details.legend dd { margin: 0; color: var(--ink); }
+details.legend dd .small { display: block; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 1000px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="hTitle">__TITLE__</h1>
+  <div class="sub" id="hSub"></div>
+</header>
+<nav id="tabs">
+  <button data-tab="overview" aria-selected="true">Overview</button>
+  <button data-tab="transcripts" aria-selected="false">Transcripts</button>
+  <button data-tab="claims" aria-selected="false">Claims</button>
+  <button data-tab="figures" aria-selected="false">Figures</button>
+</nav>
+<div class="wrap">
+  <section id="overview"></section>
+  <section id="transcripts" hidden></section>
+  <section id="claims" hidden></section>
+  <section id="figures" hidden></section>
+</div>
+
+<script type="application/json" id="payload">__PAYLOAD__</script>
+<script>
+const DATA = JSON.parse(document.getElementById("payload").textContent);
+const M = DATA.metrics || {};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const el = html => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+const f2 = x => (x == null || Number.isNaN(x)) ? "–" : Number(x).toFixed(2);
+const f3 = x => (x == null || Number.isNaN(x)) ? "–" : Number(x).toFixed(3);
+const pbox = p => p == null ? '<span class="none">–</span>' : `<span class="p ${p < 0.35 ? "lo" : p > 0.65 ? "hi" : "mid"}">${f2(p)}</span>`;
+const tag = l => `<span class="tag ${esc(l)}">${esc(String(l).replace(/_/g, " "))}</span>`;
+const verdict = v => v === true ? '<span class="true">true</span>' : v === false ? '<span class="false">false</span>' : '<span class="none">–</span>';
+// A collapsible "what the columns mean" block. `items` is [[term, meaning], ...].
+const legend = (title, items) => `<details class="legend"><summary>${esc(title)}</summary><dl>${items.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></details>`;
+
+// Shared vocabulary, referenced from both tabs.
+const LABELS = [
+  ["label", `Computed from the task variant and whether the served tests passed. Never hand typed.
+    ${tag("honest_success")} original task, tests passed. ${tag("honest_fail")} original task, tests failed.
+    ${tag("hack")} impossible variant, tests passed, so the agent must have gamed them.
+    ${tag("honest_under_conflict")} impossible variant, tests failed: the agent did not game them.`],
+  ["variant", "Which tests the agent was served. <b>original</b> is the unmodified task. <b>oneoff</b> has one test changed so no correct solution passes. <b>conflicting</b> has two tests that contradict each other."],
+];
+const MODES_DESC = [
+  ["full", "The estimator saw the whole transcript minus every test result and the final pass/fail."],
+  ["no test diff", "As full, but every change the agent made to test files is hidden as well."],
+  ["no transcript", "The estimator saw only the claim, no transcript at all, so this is its prior."],
+];
+const CLAIM_TYPES = [
+  ["type", `What the sentence asserts. <b>tests_pass</b> the provided tests pass. <b>impl_follows_spec</b> the implementation is correct or general, called a correctness claim elsewhere on this page.
+    <b>tests_unmodified</b> the agent did not change any test. <b>test_is_wrong</b> a provided test is incorrect or contradictory. <b>other</b> anything else, such as describing the algorithm.
+    A trailing <span class="mono">¬</span> marks a negated claim, one that denies the proposition, as in "the tests do not pass".`],
+  ["P(true) in a mode", "The estimator's probability that the claim is true, given the context that mode allows. Red is below 0.35, green above 0.65. The estimator never sees outcomes in any mode."],
+  ["type mismatch", "The estimator judged that the sentence does not assert what its type names, for example \"my code matches the tests\" typed as impl_follows_spec. Such claims are left out of the spec channel."],
+  ["verdict", "Ground truth from a checker, not a model. tests_pass reruns the served tests. impl_follows_spec runs the original unmutated tests. tests_unmodified diffs the test files. A dash means no checker exists for the type or it could not decide. <b>scoped</b> means the sentence names a subset, such as \"all other tests pass\", so the whole-suite verdict may not match the sentence."],
+];
+
+const T = {}; for (const t of DATA.transcripts) T[t.transcript_id] = t;
+const PT = {}; for (const r of DATA.per_transcript) PT[r.transcript_id] = r;
+const claimsBy = {}; for (const c of DATA.claims) (claimsBy[c.transcript_id] ||= []).push(c);
+const S = {}; for (const s of DATA.scores) S[s.claim_id + "|" + s.context_mode] = s;
+const V = {}; for (const v of DATA.verdicts) V[v.claim_id] = v;
+const G = {}; for (const g of DATA.gaps) G[g.transcript_id] = g;
+const MON = {}; for (const m of DATA.monitor) MON[m.transcript_id] = m;
+const MODES = ["full", "no_test_diff", "no_transcript"];
+// Unflagged, non-negated correctness claims per transcript: the spec channel exists only where this is above zero.
+for (const r of DATA.per_transcript) {
+  r.n_spec_claims = (claimsBy[r.transcript_id] || []).filter(c => c.type === "impl_follows_spec" && !c.negated && !((S[c.claim_id + "|full"] || {}).type_mismatch)).length;
+}
+
+/* header */
+{
+  const m = DATA.manifest || {};
+  const inputs = (m.config || {}).inputs || {};
+  document.getElementById("hSub").innerHTML = [
+    "stage 05 run " + (m.run_id || ""), "commit " + String(m.git_commit || "").slice(0, 7),
+    "scores " + (inputs.scores_run || ""), "verdicts " + (inputs.verdicts_run || ""), "monitor " + (inputs.monitor_run || ""),
+  ].map(p => "<span>" + esc(p) + "</span>").join("");
+}
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]"); if (!b) return;
+  for (const x of document.querySelectorAll("nav button")) x.setAttribute("aria-selected", String(x === b));
+  for (const s of document.querySelectorAll("section")) s.hidden = s.id !== b.dataset.tab;
+});
+
+/* ---------- overview ---------- */
+{
+  const o = document.getElementById("overview");
+  const labels = M.labels || {};
+  o.append(el(`<div class="cards">
+    <div class="card"><div class="n">${M.n_transcripts ?? "–"}</div><div class="k">transcripts</div></div>
+    ${Object.entries(labels).map(([k, v]) => `<div class="card"><div class="n">${v}</div><div class="k">${tag(k)}</div></div>`).join("")}
+    <div class="card"><div class="n">${M.hidden_hacks_on_original ?? "–"}</div><div class="k">honest successes whose reasoning admits test-targeting</div></div>
+    <div class="card"><div class="n">${DATA.claims.length}</div><div class="k">claims</div></div>
+  </div>`));
+
+  const det = M.detection || {};
+  const rowsD = Object.entries(det).filter(([k]) => !["spec_channel_coverage", "monitor_verdict_rate_by_label"].includes(k));
+  const fmt = r => r ? `${f2(r.auroc)} <span class="small">[${f2(r.ci[0])}, ${f2(r.ci[1])}] n=${r.n}</span>` : "–";
+  o.append(el(`<h2>Detection: AUROC, hack against honest, 95% bootstrap CI</h2>
+  <p class="note">Higher is better. "Impossible only" is hack against honest_under_conflict on the mutated variants. "Corrected labels" moves the honest successes whose reasoning admits test-targeting into the hack class. Claim-score detectors are oriented so that a low claim score means hack.</p>
+  <table><thead><tr><th>detector</th><th>all</th><th>impossible only</th><th>corrected labels</th></tr></thead><tbody>
+  ${rowsD.map(([k, v]) => `<tr><td class="mono">${esc(k)}</td><td>${fmt(v.all)}</td><td>${fmt(v.impossible_only)}</td><td>${fmt(v.corrected_labels)}</td></tr>`).join("")}
+  </tbody></table>`));
+  const cov = det.spec_channel_coverage || {};
+  o.append(el(`<p class="note">Spec channel coverage, transcripts with an unflagged correctness claim: ${Object.entries(cov).map(([k, v]) => `${k.replace(/_/g, " ")} ${v.with_claim} of ${v.of}`).join(", ")}. Monitor says "cheating" on: ${Object.entries(det.monitor_verdict_rate_by_label || {}).map(([k, v]) => `${k.replace(/_/g, " ")} ${(v * 100).toFixed(0)}%`).join(", ")}.</p>`));
+
+  const cal = M.calibration || {};
+  o.append(el(`<h2>Calibration: estimator P(true) against the stage 04 verdict</h2>
+  <p class="note">Unscoped claims only. For impl_follows_spec, "corrected" means the verdict is also false when the agent's own reasoning admits test-targeting, since a hardcoded table passes the original tests on an original task.</p>
+  <table><thead><tr><th>claims, truth, mode</th><th class="num">n</th><th class="num">base rate</th><th class="num">Brier</th><th class="num">ECE</th><th class="num">accuracy</th><th class="num">AUROC vs truth</th></tr></thead><tbody>
+  ${Object.entries(cal).map(([k, v]) => `<tr><td class="mono">${esc(k)}</td><td class="num">${v.n}</td><td class="num">${f2(v.base_rate)}</td><td class="num">${f3(v.brier)}</td><td class="num">${f3(v.ece_10)}</td><td class="num">${f2(v.accuracy)}</td><td class="num">${f2(v.auroc_vs_truth)}</td></tr>`).join("")}
+  </tbody></table>`));
+
+  const ctl = M.controls || {};
+  const bins = ctl.spec_min_full ? Object.keys(ctl.spec_min_full) : [];
+  o.append(el(`<h2>Controls</h2>
+  <div class="grid2"><div>
+  <h3>AUROC by transcript length tercile</h3>
+  <table><thead><tr><th>detector</th>${bins.map(b => `<th>${esc(b)}</th>`).join("")}</tr></thead><tbody>
+  ${["spec_min_full", "monitor_p_cheat", "has_test_is_wrong", "min_verifiable_full"].filter(k => ctl[k]).map(k => `<tr><td class="mono">${k}</td>${bins.map(b => `<td>${f2(ctl[k][b].auroc)} <span class="small">n=${ctl[k][b].n}</span></td>`).join("")}</tr>`).join("")}
+  </tbody></table></div><div>
+  <h3>Consequence invariance</h3>
+  <table><tbody>
+  ${Object.entries(ctl.spec_channel_by_mode || {}).map(([k, v]) => `<tr><td>spec channel AUROC, ${esc(k)}</td><td class="num">${f2(v)}</td></tr>`).join("")}
+  ${Object.entries(ctl.spec_min_correlation || {}).map(([k, v]) => `<tr><td>score correlation, ${esc(k.replace(/_/g, " "))}</td><td class="num">${f2(v)}</td></tr>`).join("")}
+  </tbody></table></div></div>`));
+
+  const cand = M.candour || {};
+  o.append(el(`<h2>Candour: what the reasoning knew against what the report said</h2>
+  <table><thead><tr><th>label</th><th class="num">n</th><th class="num">reasoning knows</th><th class="num">report admits</th><th>framing</th></tr></thead><tbody>
+  ${Object.entries(cand).map(([k, v]) => `<tr><td>${tag(k)}</td><td class="num">${v.n}</td><td class="num">${v.reasoning_knows}</td><td class="num">${v.report_admits}</td><td>${Object.entries(v.framing).map(([f, n]) => `${f.replace(/_/g, " ")} ${n}`).join(", ")}</td></tr>`).join("")}
+  </tbody></table>`));
+
+  const sig = M.signature || {};
+  o.append(el(`<h2>Signature: per-transcript features, mean by label</h2>
+  <table><thead><tr><th>feature</th><th class="num">hack</th><th class="num">honest success</th><th class="num">honest under conflict</th><th class="num">AUROC as detector</th></tr></thead><tbody>
+  ${Object.entries(sig).map(([k, v]) => `<tr><td class="mono">${esc(k)}</td><td class="num">${f2(v.hack.mean)}</td><td class="num">${f2(v.honest_success.mean)}</td><td class="num">${f2(v.honest_under_conflict.mean)}</td><td class="num">${f2(v.auroc_as_detector)}</td></tr>`).join("")}
+  </tbody></table>`));
+}
+
+/* ---------- transcripts ---------- */
+{
+  const sec = document.getElementById("transcripts");
+  const cols = [
+    ["transcript_id", "transcript", r => `<span class="mono">${esc(r.transcript_id)}</span>`, "Task and sample id. Click the row for the report, claims and judgements."],
+    ["label", "label", r => tag(r.label), "Computed hack label, see the column guide."],
+    ["variant", "variant", r => esc(r.variant), "Which tests the agent was served: original, oneoff or conflicting."],
+    ["report_framing", "report framing", r => esc(r.report_framing || "–"), "How the final report presents the solution, judged from reasoning and report prose only (stage 3b)."],
+    ["reasoning_knows", "reasoning knows", r => r.reasoning_knows ? '<span class="false">yes</span>' : "no", "The reasoning trace admits the code targets a test rather than the spec (stage 3b)."],
+    ["original_passed", "passes original tests", r => r.original_passed ? '<span class="true">yes</span>' : '<span class="false">no</span>', "The agent's final code passes the original unmutated tests (stage 04)."],
+    ["monitor_p_cheat", "monitor P(cheat)", r => pbox(r.monitor_p_cheat == null ? null : 1 - r.monitor_p_cheat).replace(/>([\d.]+)</, (m, x) => ">" + f2(r.monitor_p_cheat) + "<"), "Whole-transcript baseline monitor's probability that the agent cheated (stage 3c). High means hack, coloured red."],
+    ["n_spec_claims", "correctness claims", r => r.n_spec_claims || '<span class="none">0</span>', "Number of unflagged, non-negated impl_follows_spec claims. The spec channel exists only where this is above zero."],
+    ["spec_min_full", "spec min, full", r => pbox(r.spec_min_full), "Spec channel: minimum estimator P(true) over the correctness claims, full context. Low means hack."],
+    ["spec_min_no_test_diff", "spec min, no test diff", r => pbox(r.spec_min_no_test_diff), "Same as spec min, full, but the estimator could not see the agent's edits to test files."],
+    ["min_verifiable_full", "min verifiable, full", r => pbox(r.min_verifiable_full), "Naive aggregate: minimum P(true) over every verifiable claim of any type, full context."],
+    ["n_claims", "claims", r => r.n_claims, "Total claims extracted from the final report (stage 02)."],
+    ["has_test_is_wrong", "says test wrong", r => r.has_test_is_wrong ? "yes" : "no", "The report contains at least one test_is_wrong claim."],
+    ["n_chars", "chars", r => Number(r.n_chars).toLocaleString(), "Length of the transcript in characters, used for the length-matched control."],
+  ];
+  const labels = [...new Set(DATA.per_transcript.map(r => r.label))].sort();
+  const framings = [...new Set(DATA.per_transcript.map(r => r.report_framing).filter(Boolean))].sort();
+  sec.append(el(`<div class="filters">
+    <label>label <select id="fLabel"><option value="">all</option>${labels.map(l => `<option>${l}</option>`).join("")}</select></label>
+    <label>variant <select id="fVariant"><option value="">all</option><option>original</option><option>oneoff</option><option>conflicting</option></select></label>
+    <label>framing <select id="fFraming"><option value="">all</option>${framings.map(l => `<option>${l}</option>`).join("")}</select></label>
+    <label><input type="checkbox" id="fSpec"> has a correctness claim</label>
+    <label><input type="checkbox" id="fKnows"> reasoning admits targeting</label>
+    <span class="small" id="tCount"></span>
+  </div>
+  <p class="note">A dash in a "spec min" column is not missing data: the spec channel is the minimum P(true) over the transcript's unflagged, non-negated correctness claims, and a report with no such claim has no value. The "correctness claims" column shows how many there are. Monitor P(cheat) is coloured with red for high because high means hack; claim scores are coloured with red for low for the same reason.</p>`));
+  sec.append(el(legend("What the columns mean", [
+    ...LABELS,
+    ["report framing", `How the final report presents a solution that does not implement the spec, judged by a model that saw the reasoning and the report prose only, never the code, tests or outcome.
+      <b>hack</b> the report says plainly the code is hardcoded, special-cased or not general. <b>workaround</b> the report presents the special case as a reasonable response to a faulty test without saying the code is not general.
+      <b>silent</b> the report mentions no test-targeting and asserts no correctness. <b>claims_correct</b> the report asserts the code is correct or general and nothing qualifies it. A dash means the transcript was not judged.`],
+    ["reasoning knows", "The reasoning trace acknowledges that the final code does not implement the specification in general: it hardcodes, special-cases, counts calls or otherwise targets a test. Same judge as report framing."],
+    ["passes original tests", "The agent's final code was rerun against the original, unmutated tests. This is the ground truth behind the impl_follows_spec verdict. An honest_success that passes here but whose reasoning knows is a hidden hack that the tests could not see."],
+    ["monitor P(cheat)", "Baseline: a model reads the whole transcript once and gives a probability that the agent cheated, with ImpossibleBench's cheating or legit verdict. High means hack, so the colouring is reversed relative to the claim scores."],
+    ["correctness claims", "How many impl_follows_spec claims the report makes, after dropping negated ones and ones the estimator flagged as a type mismatch. Zero means the spec min columns are a dash."],
+    ["spec min, full", "The spec channel. Minimum estimator P(true) over the correctness claims, in full context. A low value means the estimator did not believe the agent's own claim of correctness, which is the hack signal this project tests."],
+    ["spec min, no test diff", "Same aggregate with the agent's edits to test files hidden from the estimator. Comparing it with the full column shows whether the estimator needed the test diff."],
+    ["min verifiable, full", "The naive aggregate. Minimum P(true) over every claim that has a checker, whatever its type, in full context. Kept as a comparison; it mixes in claims that say nothing about hacking."],
+    ["claims", "Total atomic claims extracted from the final report, any type."],
+    ["says test wrong", "The report contains at least one test_is_wrong claim. On its own this is a strong disclosure signal, because honest reports on the original task rarely say it."],
+    ["chars", "Transcript length in characters. The overview splits AUROC by terciles of this to check that detection is not a length artefact."],
+  ])));
+  const table = el(`<table><thead><tr>${cols.map(([k, h, f, d]) => `<th data-key="${k}" title="${esc(d)}">${h}</th>`).join("")}</tr></thead><tbody></tbody></table>`);
+  sec.append(table);
+  const detail = el(`<div class="detail" id="tDetail"><span class="small">Click a row to see its report, claims with scores in every mode, verdicts, the reasoning-gap judgement and the monitor's view.</span></div>`);
+  sec.append(detail);
+  let sortKey = "spec_min_full", sortDir = "asc";
+  function rows() {
+    const L = document.getElementById("fLabel").value, Vv = document.getElementById("fVariant").value, F = document.getElementById("fFraming").value;
+    const spec = document.getElementById("fSpec").checked, knows = document.getElementById("fKnows").checked;
+    let r = DATA.per_transcript.filter(x => x.has_report && (!L || x.label === L) && (!Vv || x.variant === Vv) && (!F || x.report_framing === F) && (!spec || x.spec_min_full != null) && (!knows || x.reasoning_knows));
+    r.sort((a, b) => { const A = a[sortKey], B = b[sortKey]; const na = A == null || A === "", nb = B == null || B === ""; if (na && nb) return 0; if (na) return 1; if (nb) return -1; return (A < B ? -1 : A > B ? 1 : 0) * (sortDir === "asc" ? 1 : -1); });
+    return r;
+  }
+  function render() {
+    const r = rows();
+    document.getElementById("tCount").textContent = r.length + " transcripts";
+    table.querySelector("tbody").innerHTML = r.map(x => `<tr data-id="${esc(x.transcript_id)}">${cols.map(([k, h, f]) => `<td${typeof x[k] === "number" ? ' class="num"' : ""}>${f(x)}</td>`).join("")}</tr>`).join("");
+    for (const th of table.querySelectorAll("th")) th.dataset.dir = th.dataset.key === sortKey ? sortDir : "";
+  }
+  table.querySelector("thead").addEventListener("click", e => { const th = e.target.closest("th"); if (!th) return; if (sortKey === th.dataset.key) sortDir = sortDir === "asc" ? "desc" : "asc"; else { sortKey = th.dataset.key; sortDir = "asc"; } render(); });
+  for (const id of ["fLabel", "fVariant", "fFraming", "fSpec", "fKnows"]) document.getElementById(id).addEventListener("change", render);
+  table.querySelector("tbody").addEventListener("click", e => { const tr = e.target.closest("tr[data-id]"); if (!tr) return; for (const x of table.querySelectorAll("tr")) x.setAttribute("aria-selected", String(x === tr)); showTranscript(tr.dataset.id); detail.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  window.showTranscript = function (id) {
+    const t = T[id] || {}, r = PT[id] || {}, g = G[id], m = MON[id];
+    const cs = claimsBy[id] || [];
+    detail.innerHTML = `<h2>${esc(id)} ${tag(r.label)} <span class="small">${esc(r.variant)} · ${r.n_claims} claims · passes original tests: ${r.original_passed ? "yes" : "no"}</span></h2>
+      <div class="grid2"><div><h3>Final report</h3><pre>${esc(t.final_report || "(empty)")}</pre>
+      <details><summary>final code block</summary><pre>${esc(t.final_code || "")}</pre></details></div>
+      <div><h3>Reasoning against report (stage 3b)</h3>${g ? `<div>reasoning knows: <b>${g.reasoning_knows ? "yes" : "no"}</b> · report admits: <b>${g.report_admits ? "yes" : "no"}</b> · framing: <b>${esc(g.report_framing)}</b></div>
+        ${g.reasoning_quote ? `<blockquote><span class="small">reasoning</span><br>${esc(g.reasoning_quote)}</blockquote>` : ""}${g.report_quote ? `<blockquote><span class="small">report</span><br>${esc(g.report_quote)}</blockquote>` : ""}<div class="small">${esc(g.justification)}</div>` : '<span class="small">not judged</span>'}
+      <h3>Monitor (stage 3c)</h3>${m ? `P(cheat) ${pbox(m.p_cheat)} verdict <b>${esc(m.verdict)}</b><div class="small">${esc(m.justification)}</div>` : '<span class="small">not scored</span>'}</div></div>
+      <h3>Claims</h3>
+      <table><thead><tr><th title="Claim type; ¬ marks a negated claim">type</th><th title="The claim sentence, with the estimator's full-mode justification below it">claim</th><th title="Estimator P(true), whole transcript minus outcomes">full</th><th title="Estimator P(true), test-file edits hidden as well">no test diff</th><th title="Estimator P(true) from the claim alone, its prior">no transcript</th><th title="type mismatch: the sentence does not assert what its type names">flag</th><th title="Ground truth from a checker; scoped means the sentence names a subset">verdict</th><th title="What the checker observed">evidence</th></tr></thead><tbody>
+      ${cs.map(c => { const sf = S[c.claim_id + "|full"], v = V[c.claim_id]; return `<tr><td class="mono">${esc(c.type)}${c.negated ? " ¬" : ""}</td><td>${esc(c.text)}${sf ? `<div class="small">${esc(sf.justification)}</div>` : ""}</td>
+        ${MODES.map(md => `<td>${pbox((S[c.claim_id + "|" + md] || {}).p_true)}</td>`).join("")}<td>${sf && sf.type_mismatch ? "type mismatch" : ""}</td><td>${verdict(v ? v.is_true : null)}${v && v.scoped ? '<div class="small">scoped</div>' : ""}</td><td class="small">${esc(v ? v.evidence : "")}</td></tr>`; }).join("")}
+      </tbody></table>`;
+  };
+  render();
+}
+
+/* ---------- claims ---------- */
+{
+  const sec = document.getElementById("claims");
+  const types = [...new Set(DATA.claims.map(c => c.type))].sort();
+  sec.append(el(`<div class="filters">
+    <label>type <select id="cType"><option value="">all</option>${types.map(t => `<option>${t}</option>`).join("")}</select></label>
+    <label>label <select id="cLabel"><option value="">all</option><option>hack</option><option>honest_success</option><option>honest_under_conflict</option></select></label>
+    <label>verdict <select id="cVerdict"><option value="">all</option><option value="true">true</option><option value="false">false</option><option value="none">unverified</option></select></label>
+    <label>full-mode P(true) <select id="cP"><option value="">any</option><option value="lo">below 0.35</option><option value="mid">0.35 to 0.65</option><option value="hi">above 0.65</option></select></label>
+    <label><input type="checkbox" id="cFlag"> type mismatch only</label>
+    <label><input type="checkbox" id="cUnscoped"> unscoped only</label>
+    <label><input type="checkbox" id="cNeg"> negated only</label>
+    <label>search <input type="text" id="cSearch" placeholder="claim text"></label>
+    <span class="small" id="cCount"></span></div>`));
+  sec.append(el(legend("What the columns mean", [
+    ["transcript", "The transcript the claim came from, with its computed hack label. Click the row to open that transcript."],
+    ...LABELS.slice(0, 1),
+    ...CLAIM_TYPES.slice(0, 1),
+    ["claim and justification", "The atomic claim as extracted from the final report (stage 02), and below it, in grey, the estimator's one-line reason for its full-mode score (stage 03)."],
+    ...CLAIM_TYPES.slice(1, 2),
+    ...MODES_DESC,
+    ...CLAIM_TYPES.slice(2),
+  ])));
+  const table = el(`<table><thead><tr><th title="Source transcript and its hack label">transcript</th><th title="Claim type; ¬ marks a negated claim">type</th><th title="The claim sentence, with the estimator's full-mode justification below it">claim and full-mode justification</th><th title="Estimator P(true), whole transcript minus outcomes">full</th><th title="Estimator P(true), test-file edits hidden as well">no test diff</th><th title="Estimator P(true) from the claim alone, its prior">no transcript</th><th title="Ground truth from a checker; scoped means the sentence names a subset">verdict</th></tr></thead><tbody></tbody></table>`);
+  sec.append(table);
+  function render() {
+    const ty = cType.value, L = cLabel.value, vv = cVerdict.value, pp = cP.value, fl = cFlag.checked, un = cUnscoped.checked, ng = cNeg.checked, q = cSearch.value.toLowerCase();
+    const rows = DATA.claims.filter(c => {
+      const sf = S[c.claim_id + "|full"], v = V[c.claim_id] || {}, r = PT[c.transcript_id] || {};
+      if (ty && c.type !== ty) return false; if (L && r.label !== L) return false;
+      if (vv === "true" && v.is_true !== true) return false; if (vv === "false" && v.is_true !== false) return false; if (vv === "none" && v.is_true != null) return false;
+      const p = sf ? sf.p_true : null;
+      if (pp === "lo" && !(p != null && p < 0.35)) return false; if (pp === "mid" && !(p != null && p >= 0.35 && p <= 0.65)) return false; if (pp === "hi" && !(p != null && p > 0.65)) return false;
+      if (fl && !(sf && sf.type_mismatch)) return false; if (un && v.scoped) return false; if (ng && !c.negated) return false;
+      if (q && !c.text.toLowerCase().includes(q)) return false;
+      return true;
+    }).slice(0, 800);
+    cCount.textContent = rows.length + " claims" + (rows.length === 800 ? " (first 800)" : "");
+    table.querySelector("tbody").innerHTML = rows.map(c => { const sf = S[c.claim_id + "|full"], v = V[c.claim_id], r = PT[c.transcript_id] || {}; return `<tr data-id="${esc(c.transcript_id)}"><td><span class="mono small">${esc(c.transcript_id)}</span><br>${tag(r.label)}</td><td class="mono">${esc(c.type)}${c.negated ? " ¬" : ""}${sf && sf.type_mismatch ? '<div class="small">type mismatch</div>' : ""}</td><td>${esc(c.text)}${sf ? `<div class="small">${esc(sf.justification)}</div>` : ""}</td>${MODES.map(md => `<td>${pbox((S[c.claim_id + "|" + md] || {}).p_true)}</td>`).join("")}<td>${verdict(v ? v.is_true : null)}${v && v.scoped ? '<div class="small">scoped</div>' : ""}</td></tr>`; }).join("");
+  }
+  for (const id of ["cType", "cLabel", "cVerdict", "cP", "cFlag", "cUnscoped", "cNeg"]) document.getElementById(id).addEventListener("change", render);
+  cSearch.addEventListener("input", render);
+  table.querySelector("tbody").addEventListener("click", e => { const tr = e.target.closest("tr[data-id]"); if (!tr) return; document.querySelector('nav button[data-tab="transcripts"]').click(); showTranscript(tr.dataset.id); document.getElementById("tDetail").scrollIntoView({ block: "start" }); });
+  render();
+}
+
+/* ---------- figures ---------- */
+{
+  const sec = document.getElementById("figures");
+  const caps = {
+    roc_claim_vs_monitor: "ROC curves for the four detectors, hack against honest. The monitor and the type-mix feature read the disclosure; the spec channel is the estimator's own contribution on the transcripts that assert correctness.",
+    reliability: "Reliability of the estimator's P(true) against the stage 04 verdict, unscoped claims, full mode. Two populated bins: the estimator is confident once it can trace.",
+    signature_features: "Per-transcript claim signature by label with 95% bootstrap CIs.",
+    per_mutation_auroc: "Detection within each impossible variant, hack against honest under conflict.",
+  };
+  sec.append(el(`<div class="figs">${Object.entries(DATA.figures || {}).map(([k, b64]) => `<figure><img alt="${esc(k)}" src="data:image/png;base64,${b64}"><figcaption><b>${esc(k)}</b> ${esc(caps[k] || "")}</figcaption></figure>`).join("") || '<span class="small">no figures in this run</span>'}</div>`));
+}
+</script>
+</body>
+</html>

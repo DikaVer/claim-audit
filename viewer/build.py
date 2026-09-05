@@ -13,6 +13,7 @@ Usage:
     python viewer/build.py --run <run_id>
     python viewer/build.py --all
     python viewer/build.py --all --no-reasoning   # for a large grid
+    python viewer/build.py --results <05_analyse run_id>   # the results dashboard
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 RESULTS = REPO / "results"
 TEMPLATE = Path(__file__).resolve().parent / "template.html"
+RESULTS_TEMPLATE = Path(__file__).resolve().parent / "results.html"
 DIST = Path(__file__).resolve().parent / "dist"
 
 # Only the transcript-facing stages so far. A stage that starts writing a new
@@ -132,6 +134,62 @@ def build(run_dir: Path, drop_reasoning: bool = False, spotcheck: Path | None = 
     return out
 
 
+def collect_results(run_dir: Path) -> dict:
+    """Everything a stage 05 run rests on, joined by the run ids in its manifest.
+
+    Transcripts carry their final report and final code block only, never the
+    messages or the reasoning, so a whole grid stays a few megabytes.
+    """
+    import base64
+    import csv
+    import re
+
+    manifest = read_json(run_dir / "manifest.json")
+    inputs = (manifest.get("config") or {}).get("inputs") or {}
+    payload: dict = {"run_id": run_dir.name, "manifest": manifest, "metrics": read_json(run_dir / "metrics.json")}
+    with (run_dir / "per_transcript.csv").open(encoding="utf-8", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    for r in rows:
+        for k, v in list(r.items()):
+            if v in ("", "nan"):
+                r[k] = None
+            elif v in ("True", "False"):
+                r[k] = v == "True"
+            else:
+                try:
+                    r[k] = float(v) if re.fullmatch(r"-?\d+(\.\d+)?(e-?\d+)?", v) else v
+                except ValueError:
+                    pass
+    payload["per_transcript"] = rows
+
+    block = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
+    transcripts = []
+    for t in read_jsonl(RESULTS / inputs["transcripts_run"] / "transcripts.jsonl"):
+        last = next((m for m in reversed(t["messages"]) if m["role"] == "assistant"), None)
+        code = block.findall(last["content"])[-1] if last and block.findall(last["content"]) else ""
+        transcripts.append({"transcript_id": t["transcript_id"], "label": t["label"], "variant": t["variant"],
+                            "final_report": t["final_report"], "final_code": code, "n_chars": t["n_chars"]})
+    payload["transcripts"] = transcripts
+    payload["claims"] = read_jsonl(RESULTS / inputs["claims_run"] / "claims.jsonl")
+    payload["scores"] = read_jsonl(RESULTS / inputs["scores_run"] / "scores.jsonl")
+    payload["verdicts"] = read_jsonl(RESULTS / inputs["verdicts_run"] / "verdicts.jsonl")
+    payload["gaps"] = read_jsonl(RESULTS / inputs["gap_run"] / "gaps.jsonl") if inputs.get("gap_run") else []
+    payload["monitor"] = read_jsonl(RESULTS / inputs["monitor_run"] / "monitor.jsonl") if inputs.get("monitor_run") else []
+    payload["figures"] = {p.stem: base64.b64encode(p.read_bytes()).decode("ascii")
+                          for p in sorted((run_dir / "figures").glob("*.png"))} if (run_dir / "figures").exists() else {}
+    return payload
+
+
+def build_results(run_dir: Path) -> Path:
+    payload = collect_results(run_dir)
+    blob = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
+    html = RESULTS_TEMPLATE.read_text(encoding="utf-8").replace("__TITLE__", run_dir.name).replace("__PAYLOAD__", blob)
+    DIST.mkdir(parents=True, exist_ok=True)
+    out = DIST / f"results-{run_dir.name}.html"
+    out.write_text(html, encoding="utf-8")
+    return out
+
+
 def run_dirs() -> list[Path]:
     return sorted(d for d in RESULTS.iterdir() if d.is_dir() and (d / "manifest.json").exists())
 
@@ -144,6 +202,7 @@ def main() -> None:
         "--spotcheck", type=Path, default=None,
         help="a JSON file exported from the Spot check tab, embedded as the page's initial review.",
     )
+    parser.add_argument("--results", help="a 05_analyse run id: build the results dashboard for it instead.")
     parser.add_argument(
         "--no-reasoning",
         action="store_true",
@@ -154,6 +213,11 @@ def main() -> None:
     runs = run_dirs()
     if not runs:
         raise SystemExit(f"no runs with a manifest under {RESULTS}")
+
+    if args.results:
+        out = build_results(RESULTS / args.results)
+        print(f"{out}  ({out.stat().st_size / 1024:.0f} kB)")
+        return
 
     if args.all:
         targets = runs

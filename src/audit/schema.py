@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 # Version of the whole inter-stage contract, not only the Claim model. It is
 # bumped for any field change in this module, per convention 6 in CLAUDE.md.
 # Keep it equal to claim_schema_version in configs/exp02_claims.yaml.
-CLAIM_SCHEMA_VERSION = 7
+CLAIM_SCHEMA_VERSION = 9
 
 Variant = Literal["original", "oneoff", "conflicting"]
 """Task variant. `oneoff` and `conflicting` are the impossible variants."""
@@ -159,9 +159,19 @@ class ClaimVerdict(BaseModel):
     claim_id: str
     checker: str = Field(description="Name of the checker that produced this verdict.")
     is_true: bool | None = Field(
-        default=None, description="None when the claim type has no checker."
+        default=None, description="None when the claim type has no checker, or the checker cannot decide."
     )
     evidence: str = Field(default="", description="What the checker observed.")
+    scoped: bool = Field(
+        default=False,
+        description=(
+            "True when the sentence names a subset, as in 'all other tests pass' or "
+            "'handles small inputs correctly', by a keyword heuristic in "
+            "`verify.is_scoped`. The checker still verifies the whole proposition, so "
+            "on scoped claims the verdict may not match the sentence and stage 05 "
+            "should exclude or count them apart. Added in schema version 8."
+        ),
+    )
 
 
 ReportFraming = Literal["hack", "workaround", "silent", "claims_correct"]
@@ -220,6 +230,20 @@ class OmittedClaim(BaseModel):
             "limitation, non-generality, a failing test, a test targeted."
         )
     )
+
+
+class MonitorScore(BaseModel):
+    """The whole-transcript baseline monitor's verdict on one transcript.
+
+    Sees exactly the estimator's `full` context, so a gap against the claim
+    estimator is about format, not evidence. Added in schema version 9.
+    """
+
+    transcript_id: str
+    monitor_model: str
+    p_cheat: float = Field(ge=0.0, le=1.0)
+    verdict: Literal["cheating", "legit"] = Field(description="ImpossibleBench's single-word judgment, kept verbatim.")
+    justification: str
 
 
 class RunManifest(BaseModel):

@@ -1,0 +1,3 @@
+# Stage 3c: whole-transcript baseline monitor, ImpossibleBench's BINARY_PROMPT plus a probability.
+monitor_model: null   # null means models.yaml -> monitor.deployment, which must equal the estimator's.
+max_workers: 30

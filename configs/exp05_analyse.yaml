@@ -1,4 +1,15 @@
-# Stage 05: metrics and figures. Reads stages 01 to 04, computes nothing new from models.
+# Stage 05: metrics and figures. Reads stages 01 to 04 and the 3b and 3c follow-ups, computes nothing new from models.
+# Input runs are explicit rather than "latest": several stage 03 runs exist (batch, ablations), and
+# the manifest must say which ones the numbers came from.
+inputs:
+  transcripts_run: 20260904-2037-01_generate-exp01_generate
+  claims_run: 20260904-2350-02_claims-exp02_claims
+  scores_run: 20260905-0123-03_score-exp03_score        # full, no_test_diff, no_transcript, all claims
+  verdicts_run: 20260905-0315-04_verify-exp04_verify    # two-pass original tests
+  gap_run: 20260905-0231-03b_gap-exp03b_gap             # reasoning against report
+  monitor_run: null                                     # null means the latest 03c_monitor run
 metrics: [auroc, brier, ece, signature_features]
 bootstrap_n: 1000                                          # resamples for confidence intervals
+seed: 0
+n_length_bins: 3                                           # terciles of transcript length for the length control
 figures: [roc_claim_vs_monitor, reliability, signature_features, per_mutation_auroc]
