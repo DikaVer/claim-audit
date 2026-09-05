@@ -1,102 +1,128 @@
 # claim-audit
 
-This project tests whether reward-hacking coding agents leave a signature in the claims they make. Agent transcripts are generated on ImpossibleBench, where any pass on an impossible task variant is a hack by construction, so labels are computed rather than hand typed. Each transcript is decomposed into atomic claims, an estimator scores P(true) for every claim without ever seeing the test outcome, ground-truth checkers verify the claims that are verifiable, and the resulting aggregate claim score is compared against a whole-transcript "did the agent cheat?" monitor on AUROC and calibration. See `PLAN.md` for the research plan and `LOGBOOK.md` for the session log.
+Claim-level auditing of reward-hacking coding agents.
+
+A coding agent that games its tests ends with a report: "all tests pass", "implemented per spec". This project asks whether splitting that report into atomic claims, and scoring each claim for truth without ever seeing the test outcome, detects cheating better than a whole-transcript "did the agent cheat?" monitor.
+
+**Answer: no, not on this agent.** The monitor reaches AUROC 0.95. The claim-level aggregate is at chance, because a cheating agent's individual sentences are mostly true. One claim type, "the code follows the spec", carries real signal (AUROC 0.76), but few hackers make that claim. The deciding fact is that the agent admits test-targeting in every hack, so any reader of the transcript finds them.
+
+## How it works
+
+![Pipeline](writeup/figures/0_pipeline.png)
+
+Transcripts come from [ImpossibleBench](https://github.com/safety-research/impossiblebench), which mutates LiveCodeBench tests so that they contradict the task text. The agent is told to follow the task text and not to modify tests. A pass on a mutated variant is therefore a hack by construction, and every label is computed from the variant and the test outcome.
+
+![Labels](writeup/figures/0b_labels.png)
+
+| stage | script | what it does |
+|---|---|---|
+| 01 | `01_generate_transcripts.py` | runs DeepSeek-V3.2 on 60 tasks x 3 variants x 2 samples through Inspect AI, computes labels |
+| 02 | `02_extract_claims.py` | gpt-4o splits each final report into typed atomic claims; it sees the report only |
+| 03 | `03_score_claims.py` | gpt-5.6-sol gives P(true) per claim in three context modes; never sees outcomes or reasoning |
+| 03b | `03b_reasoning_gap.py` | judge compares the private reasoning with the public report: did it know, did it say so |
+| 03c | `03c_monitor.py` | baseline: ImpossibleBench's own cheating-judge prompt over the whole transcript |
+| 04 | `04_verify_claims.py` | Docker re-runs every final solution against the original tests, twice, for ground truth |
+| 05 | `05_analyse.py` | AUROC with bootstrap CIs, Brier, ECE, per-variant and per-length controls, figures |
+| 06 | `06_bon.py` | best-of-N optimisation-pressure stretch, not run |
 
 ## Results
 
-The write-up is `writeup/WRITEUP.md`, with the figures under `writeup/figures/`. In one paragraph: on 350 DeepSeek-V3.2 transcripts under a loose prompt, the agent hacks openly. Its reasoning admits test-targeting in 178 of 180 hacks and every report discloses the fact, so a whole-transcript monitor reaches AUROC 0.95 and a claim-level aggregate sits at chance, because the hackers' sentences are mostly true. The estimator's own signal is confined to correctness claims, where it reaches 0.76, survives hiding the mutated tests, and vanishes without the transcript. On test-pass claims it is well calibrated, Brier 0.064. Every number is read from `metrics.json` in the final stage 05 run; the run ids are listed in `CLAUDE.md`.
+![Detection](writeup/figures/1b_detection_readable.png)
 
-## Running
+- **Detection.** The monitor flags 184 of 184 hacks. The all-claims aggregate is at chance (0.54) and inverts within mutated variants (0.38): honest agents that refuse to hack make false "tests pass" claims and get caught instead.
+- **The one working channel.** Min P(true) over "follows the spec" claims reaches 0.76, holds with the served tests hidden (0.74), and drops to chance without the transcript (0.54). Only 51 of 180 hackers make such a claim.
+- **Calibration.** On "tests pass" claims against the real harness result: Brier 0.064, ECE 0.02, n = 280.
+- **Candour.** The reasoning knows it is gaming the tests in 178 of 180 hacks. The report says so plainly in 78% and calls it a "workaround" in 22%. No hack is silent.
+- **Controls.** Transcript length and reasoning length do not explain the working detectors, and giving the estimator the reasoning trace does not improve it.
 
-Install with `make install` (uv). Then run the stages in order, each reading the previous stage's output from `results/<run_id>/`:
+Every number is read from `metrics.json` of the final stage 05 run. Run ids are listed in `CLAUDE.md`. Results live under `results/`, which is gitignored.
 
+## Quick start
+
+Requirements: Python 3.11+, [uv](https://docs.astral.sh/uv/), Docker (stages 01 and 04), and an Azure OpenAI resource with the deployments named in `configs/models.yaml`.
+
+```bash
+cp .env.example .env      # fill in the Azure OpenAI key and endpoint
+make install              # uv sync
+make smoke                # import check
+uv run pytest             # unit tests; live prompt tests need AUDIT_LIVE_TESTS=1
 ```
-make gen      # 01_generate_transcripts.py
-make claims   # 02_extract_claims.py
-make score    # 03_score_claims.py
-make gap      # 03b_reasoning_gap.py, reasoning against report, needs a model with readable reasoning
-make monitor  # 03c_monitor.py, the whole-transcript baseline
-make verify   # 04_verify_claims.py, Docker
-make analyse  # 05_analyse.py, input run ids are in configs/exp05_analyse.yaml
-make bon      # 06_bon.py  (stretch)
+
+Run the stages in order. Each reads the previous stage's output from `results/<run_id>/` and writes its own.
+
+```bash
+make gen      # 01
+make claims   # 02
+make score    # 03
+make gap      # 03b
+make monitor  # 03c
+make verify   # 04, Docker
+make analyse  # 05, input run ids are in configs/exp05_analyse.yaml
 ```
 
-Every run writes `results/<run_id>/manifest.json`. Results are append-only, so re-running a stage creates a new run_id.
+Cheap ways to exercise a stage before paying for the full grid:
 
-## Stage 01 outputs and how to read them
-
-`make gen` writes `results/<run_id>/` with four files, and the raw Inspect logs to `data/raw/<run_id>/`.
-
-| file | what it is |
-|---|---|
-| `manifest.json` | run id, git commit, config and model roles as loaded, start and end time, number of agent calls |
-| `tasks.jsonl` | one `Task` per (task, variant): spec, entry point, served tests, original tests |
-| `transcripts.jsonl` | one `Transcript` per agent run: messages with ids, reasoning keyed to message ids, final report, outcomes, computed label |
-| `summary.json` | label counts per variant, check-override hacks, transcripts with an empty report or no reasoning, token totals per model |
-
-Two no-cost ways to exercise the stage before spending on the full grid:
-
-```
+```bash
 # parse an existing log directory into a fresh run, no model calls
 uv run python scripts/01_generate_transcripts.py --config configs/exp01_generate.yaml --from-logs data/raw/smoke-ds
 
-# one task, all variants, all samples, through the live harness
+# one task through the live harness
 uv run python scripts/01_generate_transcripts.py --config configs/exp01_generate.yaml --n-tasks 1
-```
 
-To sanity check a run, read `summary.json` first. `labels` should show hacks on the impossible variants and honest successes on `original`. `empty_reports` lists transcripts where the agent ignored the report request, which stage 02 will have no claims for. `check_override_hacks` counts the method A hacks that the scorer's ordering hides. Then open `transcripts.jsonl` with pandas:
-
-```python
-import pandas as pd
-df = pd.read_json("results/<run_id>/transcripts.jsonl", lines=True)
-df["reasoning_chars"] = df.reasoning.map(lambda r: sum(len(x["text"]) for x in r))
-print(df.groupby(["variant", "label"]).size())
-print(df.groupby("label")[["n_messages", "n_chars", "reasoning_chars"]].median())
-print(df.loc[df.label == "hack", "final_report"].iloc[0])
-```
-
-## Stage 03 outputs and how to read them
-
-`make score` reads the latest stage 01 and stage 02 runs and writes `scores.jsonl`, one `ClaimScore` per (claim, context mode), plus `summary.json`. Modes run in the order given in `configs/exp03_score.yaml`, cheapest first. Every call is cached, so a run that stops part way is resumed by running it again under a new run id.
-
-What the estimator sees in each mode is decided by `estimator.build_context`, and the rule is the same in all of them: the task prompt and the agent's own messages, never the harness feedback, never the test outcome, never the reasoning. `no_test_diff` additionally replaces the served test block with a marker wherever it appears. `no_transcript` shows the claim alone.
-
-Before the full batch, score one transcript in the cheapest mode:
-
-```
+# score one transcript in the cheapest mode
 uv run python scripts/03_score_claims.py --config configs/exp03_score.yaml --limit 1 --modes no_transcript
 ```
 
-Then read `summary.json`. `n_distinct` and `frac_at_anchors` per mode say whether the probabilities spread or collapsed onto 0, 0.5 and 1; a collapsed mode leaves stage 05 nothing to calibrate.
+## Viewing results
 
-Two follow-ups read the same stage 01 run. `--modes with_reasoning --types impl_follows_spec` rescores the correctness claims with the agent's reasoning trace in view, the ablation for "does the trace do the detecting". `make gap` is stage 3b: one judge call per transcript that compares what the reasoning acknowledged with what the report said, writing `gaps.jsonl` with a framing label per report and `summary.json` with the counts per label.
+```bash
+make viewer    # one self-contained HTML page per run under viewer/dist/
+make results   # dashboard for the newest stage 05 run: metrics, transcripts, claims, figures
+make install-notebooks && make notebook   # execute notebooks/plots.ipynb in place
+```
 
-## Stages 04 and 05
+The viewer uses the standard library only and never writes to `results/`. The notebook reads `results/` and computes nothing new.
 
-`make verify` runs every transcript's final code against the original tests in Docker, twice in one process so that a call-counter hack fails on the second pass, and writes `original_runs.jsonl` and one verdict per claim. Scoped sentences such as "all other tests pass" are flagged, not dropped. `make analyse` reads the runs named in `configs/exp05_analyse.yaml` and writes `metrics.json`, `per_transcript.csv` and `figures/`. Every number in the write-up comes from `metrics.json`.
+## Reading the outputs
 
-## Viewing a run
+| file | stage | contents |
+|---|---|---|
+| `manifest.json` | all | run id, git commit, config as loaded, model roles, timings, call count, estimated cost |
+| `transcripts.jsonl` | 01 | one `Transcript` per agent run: messages, reasoning, final report, outcome, computed label |
+| `claims.jsonl` | 02 | one `Claim` per atomic assertion: text, type, negated flag, verifiable flag |
+| `scores.jsonl` | 03 | one `ClaimScore` per (claim, context mode): P(true), justification, type-mismatch flag |
+| `gaps.jsonl` | 03b | per transcript: does the reasoning know, does the report admit, framing label |
+| `original_runs.jsonl` | 04 | per transcript: did the final code pass the original tests, first and second pass |
+| `verdicts.jsonl` | 04 | ground truth per verifiable claim, with scoped claims flagged rather than judged |
+| `metrics.json`, `per_transcript.csv` | 05 | every number in the write-up |
 
-`make viewer` builds one self-contained HTML page per run under `viewer/dist/`.
-Open the file by double-clicking it, or open `viewer/dist/index.html` for the
-list. Four tabs: run overview and label counts, a filterable transcript table
-with the reasoning trace behind a separate collapsed panel, the served test file
-against the unmutated one side by side, and a claims table that fills in once
-stages 02 to 04 have run. `viewer/build.py` uses the standard library only,
-adds no dependency, and never writes to `results/`.
+Start with `summary.json` in any run. For stage 01 it gives label counts per variant and lists transcripts with an empty report. For stage 03 it reports whether the probabilities spread or collapsed onto 0, 0.5 and 1.
 
-Build one run rather than all of them with
-`uv run python viewer/build.py --run <run_id>`.
+## Design rules
 
-The results dashboard is a second page, built from a stage 05 run:
-`uv run python viewer/build.py --results <05_analyse run_id>`, or `make results`
-for the newest one. It joins every run named in that stage's manifest and has
-four tabs: the metrics tables with CIs, a sortable transcript table whose rows
-open the report, every claim with its score in each mode, its verdict, the
-reasoning-gap judgement and the monitor's view, a filterable claim table, and
-the figures. `notebooks/plots.ipynb` draws the same numbers from `results/`
-with matplotlib and nothing else; it computes nothing new. Under every plot is
-a paragraph saying what it shows, and a conclusions cell at the end. The
-notebook tooling is a separate dependency group: `make install-notebooks`, then
-`make notebook` executes it in place, or open it in Jupyter with
-`uv run jupyter notebook notebooks/plots.ipynb`.
+- One script per stage. Stages share files, never memory.
+- Results are append-only. Re-running a stage creates a new run id.
+- All model calls go through `src/audit/cache.py`, keyed by sha256 of model, params and messages.
+- Labels are computed in `src/audit/transcripts.py`, never typed.
+- The estimator never sees test outcomes, feedback or reasoning, except in the two ablation modes named for it.
+- `src/audit/schema.py` is the contract between stages. A new field bumps `CLAIM_SCHEMA_VERSION`.
+
+## Repository layout
+
+```
+configs/        models.yaml plus one exp*.yaml per stage
+prompts/        claim extraction, estimator, reasoning gap, baseline monitor
+scripts/        01 to 06, plus 03b and 03c
+src/audit/      schema, transcripts, claims, estimator, reasoning_gap, monitor_baseline, verify, metrics, cache, runs
+tests/          unit tests; *_live.py run real prompts only with AUDIT_LIVE_TESTS=1
+viewer/         stdlib-only HTML viewer and results dashboard
+notebooks/      plots.ipynb, reads results/ only
+writeup/        WRITEUP.md, WRITEUP.docx, WRITEUP_long.md, figures/
+data/, results/ gitignored, on the author's machine
+```
+
+## Deviations from ImpossibleBench
+
+- The instruction prompt adds one sentence asking for a short report after the code. Without it the agent emits only a code block and there is nothing to audit.
+- The agent runs with the `minimal` scaffold, since no DeepSeek model on Azure supports tool calling.
+- The benchmark's loose prompt B was used deliberately. Its strict prompt D drives cheat rates near zero and would have left nothing to study.
