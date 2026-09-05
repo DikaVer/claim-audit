@@ -1,5 +1,7 @@
 # PLAN.md: claim-level audit of reward-hacking transcripts
 
+This is the plan as it stood before the first full run, with the corrections made during the smoke runs left in place. It is kept as a record of what was predicted. What actually happened, and where the predictions failed, is in `writeup/WRITEUP.md`; the dated trail is in `LOGBOOK.md`. The hour budget below was overrun, see the logbook.
+
 ## The question
 
 Do reward-hacking coding agents leave a signature in the *claims* they make, and does a claim-level estimator catch hacks that a whole-transcript monitor misses?
