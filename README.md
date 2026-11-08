@@ -6,7 +6,7 @@ Does splitting a coding agent's final report into single claims, and scoring eac
 
 ## Watch the 5-minute explainer
 
-https://github.com/user-attachments/assets/3c10574a-e9a1-4a52-9b67-aac4067a8bf3
+https://github.com/user-attachments/assets/4c07665f-ed13-4102-bde3-bd463b95f0c0
 
 The film covers why the question matters, what ran, what the results mean, related work and a possible next step. It is 5 minutes long at 720p, with captions in the picture. The file is also in the repo as [writeup/film.mp4](writeup/film.mp4), with captions in [writeup/film-en.vtt](writeup/film-en.vtt).
 
