@@ -1,0 +1,277 @@
+WEBVTT
+
+00:00:01.167 --> 00:00:03.917
+When an AI coding agent finishes a task,
+
+00:00:03.967 --> 00:00:09.517
+it can write a report: all tests pass,
+the code does what the task asks.
+
+00:00:09.567 --> 00:00:12.637
+Sometimes the agent got
+there by gaming the tests.
+
+00:00:12.687 --> 00:00:17.037
+If we let agents write code, we need
+to know when their reports are false.
+
+00:00:17.087 --> 00:00:19.837
+This project compares two ways to check.
+
+00:00:19.887 --> 00:00:22.957
+A monitor, another AI,
+reads the whole record of
+
+00:00:23.007 --> 00:00:26.557
+the run and gives one
+verdict: did the agent cheat?
+
+00:00:26.607 --> 00:00:31.224
+Or we split the report into single
+claims and score each one for truth,
+
+00:00:31.274 --> 00:00:33.517
+without showing the
+scorer the test results.
+
+00:00:33.567 --> 00:00:37.677
+Does checking claims one by one
+catch hacks that the monitor misses?
+
+00:00:37.727 --> 00:00:41.917
+To know which runs were hacks,
+the project used ImpossibleBench.
+
+00:00:41.967 --> 00:00:46.477
+It edits the tests of coding tasks so
+that they contradict the task text.
+
+00:00:46.527 --> 00:00:48.877
+The agent is told to follow the task.
+
+00:00:48.927 --> 00:00:53.157
+If it still passes the impossible
+tests, that can only be a hack.
+
+00:00:53.207 --> 00:00:58.397
+The agent was DeepSeek-V3.2, under a
+permissive prompt from the benchmark.
+
+00:00:58.447 --> 00:01:02.397
+It was asked to end with a short report,
+so there was something to check.
+
+00:01:02.447 --> 00:01:09.677
+It produced 350 runs. 184 were hacks,
+and 180 of those ended with a report.
+
+00:01:09.727 --> 00:01:14.317
+One AI split each report into claims,
+and a second scored each claim.
+
+00:01:14.367 --> 00:01:18.797
+The code was run twice on the original
+tests, to see which claims were true.
+
+00:01:18.847 --> 00:01:22.317
+The second AI also ran the
+benchmark's own monitor.
+
+00:01:22.367 --> 00:01:27.677
+The plan had named one risk, and it
+came true: this agent did not hide.
+
+00:01:27.727 --> 00:01:31.357
+All 180 hacks with a report
+said what they had done.
+
+00:01:31.407 --> 00:01:34.717
+The monitor flagged all 184 hacks.
+
+00:01:34.767 --> 00:01:39.437
+Its AUROC, a measure of how well
+it ranks hacks above honest runs,
+
+00:01:39.487 --> 00:01:44.797
+was 0.95, where 1 is perfect
+and 0.5 is a coin flip.
+
+00:01:44.847 --> 00:01:48.317
+It also flagged 13% of honest successes.
+
+00:01:48.367 --> 00:01:54.557
+A check with no AI at all, does the
+report say a test is wrong, reached 0.85.
+
+00:01:54.607 --> 00:01:57.037
+Scoring each report by
+its least believable
+
+00:01:57.087 --> 00:02:00.797
+claim did no better than chance, at 0.54.
+
+00:02:00.847 --> 00:02:05.170
+A cheating agent's sentences are
+mostly true: the tests do pass,
+
+00:02:05.220 --> 00:02:07.197
+and the test really is wrong.
+
+00:02:07.247 --> 00:02:12.317
+One kind of claim did carry signal:
+the code does what the task asks.
+
+00:02:12.367 --> 00:02:17.357
+There the scorer read the code
+against the task, and reached 0.76.
+
+00:02:17.407 --> 00:02:19.437
+That was measured on a
+different set of runs,
+
+00:02:19.487 --> 00:02:21.597
+so it does not compare with the monitor.
+
+00:02:21.647 --> 00:02:27.037
+Only 51 of the 180 hacks with a report
+made a clear claim of that kind.
+
+00:02:27.087 --> 00:02:29.757
+This does not show that
+checking claims is worse.
+
+00:02:29.807 --> 00:02:33.677
+This agent disclosed every hack,
+so any reader could find it.
+
+00:02:33.727 --> 00:02:39.677
+The real test needs an agent that hides
+its hacks, and this run did not have one.
+
+00:02:39.727 --> 00:02:44.987
+The limits are one agent, one prompt
+and one benchmark of single-file tasks.
+
+00:02:45.327 --> 00:02:50.237
+Related work on monitoring AI agents for
+scheming, where an agent secretly pursues
+
+00:02:50.287 --> 00:02:55.117
+goals it should not have, also finds
+that simple monitors are hard to beat.
+
+00:02:55.167 --> 00:02:57.877
+Apollo Research's
+monitoring agenda reports
+
+00:02:57.927 --> 00:03:01.117
+early results: monitors
+that act as agents,
+
+00:03:01.167 --> 00:03:02.677
+or that debate each other,
+
+00:03:02.727 --> 00:03:06.837
+have not beaten several simple
+monitors whose verdicts are combined.
+
+00:03:06.887 --> 00:03:11.797
+Combining monitors, and training a
+monitor on examples, both clearly helped.
+
+00:03:11.847 --> 00:03:16.797
+In a 2026 paper with Apollo's Marius Hobbhahn,
+Storf and colleagues found that
+
+00:03:16.847 --> 00:03:21.997
+simply trying a set of prompts mostly
+matched more extensive prompt optimisation.
+
+00:03:22.047 --> 00:03:27.197
+In 2025, Goldowsky-Dill and colleagues at
+Apollo found that simple probes reading
+
+00:03:27.247 --> 00:03:32.477
+a model's internals did about as well
+as GPT-4o reading the whole transcript.
+
+00:03:32.527 --> 00:03:35.707
+But the deception in their
+tests was easy to see.
+
+00:03:35.807 --> 00:03:40.827
+None of these studies checked claims one
+by one, and none tested reward hacking.
+
+00:03:41.087 --> 00:03:43.787
+They show that simple
+monitors are hard to beat.
+
+00:03:43.967 --> 00:03:46.507
+They do not test this project's question.
+
+00:03:46.847 --> 00:03:50.877
+That leaves the open question:
+when an agent hides its hacks,
+
+00:03:50.927 --> 00:03:54.307
+do single claims catch what
+a simple monitor misses?
+
+00:03:54.367 --> 00:03:58.557
+First, though, it must be shown that
+the monitor needs the report at all.
+
+00:03:58.607 --> 00:04:02.957
+On these single-file tasks,
+the hack may be plain from the code alone.
+
+00:04:03.007 --> 00:04:08.957
+Two results already stand: scoring all
+claims together fails for a clear reason, and
+
+00:04:09.007 --> 00:04:13.947
+when the scorer judges whether the code
+does what the task asks, it reads the code.
+
+00:04:14.207 --> 00:04:18.637
+After that test, one direction for
+future work is a chain of claims.
+
+00:04:18.687 --> 00:04:22.077
+Each claim would point to what
+supports it: a line of code,
+
+00:04:22.127 --> 00:04:24.837
+a test result, or an earlier claim.
+
+00:04:24.887 --> 00:04:28.357
+The final claim, that the
+code does what the task asks,
+
+00:04:28.407 --> 00:04:30.717
+would then stand on the chain beneath it.
+
+00:04:30.767 --> 00:04:34.797
+A structured monitor could walk
+the chain and find the weak link: a
+
+00:04:34.847 --> 00:04:38.797
+claim that nothing supports,
+and that the claims above it rest on.
+
+00:04:38.847 --> 00:04:41.597
+Where the code alone does
+not give the hack away,
+
+00:04:41.647 --> 00:04:45.517
+that could show where an agent's
+account stops matching what it did.
+
+00:04:45.567 --> 00:04:49.837
+The project kept a field for each claim's
+support, but it only ever pointed at
+
+00:04:49.887 --> 00:04:55.307
+the final report, and it could not point
+at another claim, so no chain was built.

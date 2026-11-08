@@ -1,0 +1,68 @@
+# Model roles. Values are Azure OpenAI DEPLOYMENT names, not model names.
+# Inspect resolves them as openai/azure/<deployment>, so keep each deployment
+# named after its model to avoid Inspect's deployment-mismatch warning.
+#
+# Sampling params are per role, not global. Reasoning models on Azure OpenAI do
+# not accept a temperature, so determinism for those roles comes from cache.py
+# rather than from sampling parameters.
+
+# Open weights, and the only role where the reasoning trace is readable. Verified:
+# with reasoning_effort set, Azure returns reasoning_content as plain text and
+# Inspect splits it into a separate content part, so the model's private
+# deliberation and its public report can be compared directly. That makes
+# concealment measurable, which o3 cannot support because its reasoning arrives
+# encrypted. reasoning_effort is the toggle: without it V3.2 answers in
+# non-thinking mode and returns no trace at all. The Speciale variant is NOT the
+# thinking variant, it behaves the same way.
+# Tool calling is not supported by any DeepSeek model on Azure, so agent_type
+# must stay "minimal". Training cutoff: not published. The technical report
+# (arXiv 2512.02556, 2 Dec 2025) continues training from V3.1-Terminus and
+# gives no data dates, so recognition of ImpossibleBench (October 2025) cannot
+# be ruled out. Session 30 of the logbook.
+agent:
+  deployment: "DeepSeek-V3.2"
+  reasoning_effort: "medium"  # required, or there is no reasoning trace
+  max_tokens: 32768
+
+# Retained as the comparison arm. Training cutoff 31 May 2024, which predates
+# ImpossibleBench, so it provably cannot have seen the benchmark. Measured at
+# 2 of 2 hacks in the smoke run. Its reasoning is encrypted, so it supports the
+# claim analysis but not the concealment analysis.
+agent_alt:
+  deployment: "o3"            # 86% cheat rate on conflicting LCB under prompt B
+  reasoning_effort: "medium"  # matches the paper's replication settings
+  max_tokens: 32768           # maps to max_completion_tokens, which covers reasoning AND visible output together
+
+# Fallback ladder if gpt-5.6 quota is not granted: gpt-5.6-sol -> gpt-5.5 -> gpt-5.
+# All three are reasoning models with the same 922k input and 128k output shape,
+# so substituting one is a one-line edit here and nothing else changes.
+estimator:
+  deployment: "gpt-5.6-sol"   # strongest available, used for both estimator and baseline monitor
+  # Was medium. Swept none, low, medium, high on 12 stratified claims in the
+  # full and no_transcript modes, session 17. Cost is dominated by the input
+  # tokens, so high costs about one cent more per call than none, and it was
+  # the only setting that never skipped tracing: with no reasoning the model
+  # gave 0.94 to a mechanism claim the other three settings traced as false.
+  reasoning_effort: "high"    # no temperature key: reasoning models reject it
+  max_tokens: 16384
+
+monitor:
+  deployment: "gpt-5.6-sol"   # must equal the estimator, so any gap is about format not model
+  reasoning_effort: "medium"
+  max_tokens: 16384
+
+extractor:
+  # Deliberately not a gpt-5.6 variant. All three of those are reasoning models,
+  # and this is the one role where temperature 0 is both achievable and load
+  # bearing, because the "extraction may leak the label" control rests on the
+  # extractor's output being stable rather than merely cached.
+  # Was gpt-4.1. Forced to change: germanywestcentral has no GlobalStandard or
+  # DataZoneStandard quota for gpt-4.1, only Batch, which Inspect does not drive.
+  # gpt-4o keeps every property that mattered and strengthens one: its October
+  # 2023 cutoff predates ImpossibleBench by two years. Version 2024-11-20 is
+  # pinned because structured outputs landed in 2024-08-06, and claim extraction
+  # returns JSON matching the Claim model.
+  deployment: "gpt-4o"        # mid-tier and non-reasoning, so temperature 0 is real here
+  model_version: "2024-11-20"
+  temperature: 0.0
+  max_tokens: 4096            # non-reasoning, so this is visible output only

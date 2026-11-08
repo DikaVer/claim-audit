@@ -1,0 +1,23 @@
+# Generated data and results are never committed. Only the directory markers are.
+data/*
+!data/raw/
+data/raw/*
+!data/raw/.gitkeep
+!data/processed/
+data/processed/*
+!data/processed/.gitkeep
+results/*
+!results/.gitkeep
+
+.env
+__pycache__/
+*.pyc
+.cache/
+.venv/
+impossiblebench/
+
+# The Word source of the write-up stays local; the PDF is the published copy.
+Executive_Summary.docx
+
+# The logbook stays local.
+LOGBOOK.md
